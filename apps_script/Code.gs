@@ -64,7 +64,7 @@ function str_(v, max) { return String(v == null ? '' : v).slice(0, max || 200); 
 
 function toRow_(id, r) {
   const at = Number(r.at) || Date.now();
-  return [id, str_(r.month, 7), r.view === 'cust' ? 'Shipper' : 'Org Shipper', "'" + str_(r.key, 60),
+  return [id, "'" + str_(r.month, 7), r.view === 'cust' ? 'Shipper' : 'Org Shipper', "'" + str_(r.key, 60),
           str_(r.name), str_(r.sales, 80), TYPE_TH[r.type] || str_(r.type, 20), str_(r.result, 20),
           RESULT_TH[r.result] || '', str_(r.note, 2000), str_(r.by, 80), new Date(at), at];
 }
@@ -76,7 +76,7 @@ function doGet() {
   const items = {};
   values.forEach(v => {
     if (!ID_RE.test(v[0])) return;
-    items[v[0]] = {month: v[1], view: v[2] === 'Shipper' ? 'cust' : 'org', key: String(v[3]), name: v[4],
+    items[v[0]] = {month: v[1] instanceof Date ? Utilities.formatDate(v[1], 'Asia/Bangkok', 'yyyy-MM') : String(v[1]), view: v[2] === 'Shipper' ? 'cust' : 'org', key: String(v[3]), name: v[4],
                    sales: v[5], type: Object.keys(TYPE_TH).find(k => TYPE_TH[k] === v[6]) || v[6],
                    result: v[7], note: v[9], by: v[10], at: Number(v[12]) || 0};
   });
