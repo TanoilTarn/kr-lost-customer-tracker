@@ -17,6 +17,16 @@ python3 kr_tracker.py build KR_May_to_Oct.xls
 ## 2) เซลกรอกแล้วส่งกลับ
 เปิดไฟล์ในเบราว์เซอร์ → เลือก Sales + ใส่ชื่อผู้เช็ค → เลือกผลการเช็ค/พิมพ์หมายเหตุ → กด **บันทึกไฟล์ (ส่งกลับ)** → ส่งไฟล์ที่ได้กลับมา
 
+## 2.1) ให้เซลกด "ส่งข้อมูล" จากลิงก์ได้เลย (Google Sheet)
+1. สร้าง Google Sheet ใหม่ → Extensions → Apps Script → วางโค้ดจาก `apps_script/Code.gs` → Save
+2. Deploy → New deployment → Web app · Execute as: **Me** · Who has access: **Anyone** → Deploy → คัดลอก URL (ลงท้าย `/exec`)
+3. สร้างไฟล์ใหม่พร้อม URL (จำไว้ใน `config.json` ครั้งต่อไปไม่ต้องใส่อีก)
+```bash
+python3 kr_tracker.py build KR_May_to_Oct.xls --sheet-url https://script.google.com/macros/s/XXXX/exec
+```
+หน้าเว็บจะมีปุ่ม **ส่งข้อมูล** แทนปุ่มบันทึกไฟล์ คำตอบเข้า Google Sheet ของเจ้าของทันที
+(ชีต `Feedback` = คำตอบล่าสุดต่อราย, ชีต `Log` = ประวัติทุกครั้งที่ส่ง) และทุกคนที่เปิดลิงก์จะเห็นคำตอบล่าสุด
+
 ## 3) รวมคำตอบ
 ```bash
 python3 kr_tracker.py merge returned/*.html

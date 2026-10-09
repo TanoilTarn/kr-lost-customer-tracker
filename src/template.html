@@ -116,6 +116,7 @@ th.m.cur{color:var(--accent)}
   <section class="howto" id="howto">
     <div><b>สำหรับเซล</b> เลือกชื่อตัวเองในช่อง Sales → ใส่ "ชื่อผู้เช็ค" → เลือกผลการเช็คและพิมพ์รายละเอียด → กด <b>บันทึกไฟล์ (ส่งกลับ)</b> แล้วส่งไฟล์ที่ได้กลับทางอีเมล/LINE</div>
     <div><b>สำหรับเจ้าของ</b> กด <b>รวมไฟล์จากเซล</b> แล้วเลือกไฟล์ที่ได้รับ (เลือกหลายไฟล์พร้อมกันได้) คำตอบทั้งหมดจะรวมเข้าตาราง จากนั้นกดบันทึกไฟล์เพื่อเก็บฉบับรวม</div>
+    <div id="howtoRemote" hidden><b>สำหรับเซล</b> เลือกชื่อตัวเองในช่อง Sales → ใส่ "ชื่อผู้เช็ค" → เลือกผลการเช็คและพิมพ์รายละเอียด → กด <b>ส่งข้อมูล</b> คำตอบจะส่งถึงเจ้าของทันที (ส่งซ้ำ/แก้ไขได้ ระบบจะเก็บคำตอบล่าสุด)</div>
     <div class="dirty" id="dirty" hidden>มีคำตอบที่ยังไม่ได้บันทึกลงไฟล์ · กด "บันทึกไฟล์ (ส่งกลับ)" ก่อนปิด</div>
   </section>
 
@@ -154,6 +155,7 @@ th.m.cur{color:var(--accent)}
       </div>
       <div class="left">
         <div class="namebox"><label class="lbl" for="me">ชื่อผู้เช็ค</label><input type="text" id="me" placeholder="ชื่อของคุณ" style="width:140px"></div>
+        <button class="btn primary" id="sendBtn" type="button" hidden>ส่งข้อมูล</button>
         <button class="btn primary" id="saveFileBtn" type="button">บันทึกไฟล์ (ส่งกลับ)</button>
         <button class="btn" id="importBtn" type="button">รวมไฟล์จากเซล</button>
         <input type="file" id="importInput" accept=".html,.htm" multiple hidden>
@@ -172,6 +174,8 @@ th.m.cur{color:var(--accent)}
 <script>
 const DATA = __DATA__;
 const MNAME = ["พ.ค.","มิ.ย.","ก.ค.","ส.ค.","ก.ย.","ต.ค."];
+const SHEET_URL = __SHEET_URL__;   // Google Apps Script web app (ว่าง = ใช้วิธีบันทึกไฟล์)
+const REMOTE = /^https:\/\/script\.google\.com\//.test(SHEET_URL);
 const RESULTS = [
   ["", "— ยังไม่เช็ค —"],
   ["back", "จะกลับมาจอง / มีงานเดือนหน้า"],
@@ -353,7 +357,8 @@ async function saveOne(id,box){
       else toast("บันทึกไม่สำเร็จ ลองอีกครั้ง");
     }).finally(()=>{delete writing[id]});
     await writing[id];
-  } else { saveDraft(); setDirty(true); toast("จดไว้แล้ว · อย่าลืมกดบันทึกไฟล์"); }
+  } else if(REMOTE){ saveDraft(); pending.add(id); savePending(); updateSendBtn(); }
+  else { saveDraft(); setDirty(true); toast("จดไว้แล้ว · อย่าลืมกดบันทึกไฟล์"); }
   const w=box.querySelector(".who"); if(w) w.textContent=`${rec.by||"ไม่ระบุชื่อ"} · ${new Date(rec.at).toLocaleString("th-TH",{day:"numeric",month:"short",hour:"2-digit",minute:"2-digit"})}`;
   updateProgressOnly();
 }
@@ -394,7 +399,39 @@ function mergeInto(items){
 }
 function saveDraft(){try{localStorage.setItem(DRAFT_KEY,JSON.stringify(feedback))}catch(e){}}
 function setDirty(v){dirty=v;$("#dirty").hidden=!v}
-window.addEventListener("beforeunload",e=>{if(dirty&&saveMode!=="db"){e.preventDefault();e.returnValue="";}});
+window.addEventListener("beforeunload",e=>{if((REMOTE?pending.size:dirty)&&saveMode!=="db"){e.preventDefault();e.returnValue="";}});
+
+/* ---------- send to owner's Google Sheet ---------- */
+const PENDING_KEY="kr-pending";
+let pending=new Set(), sending=false;
+try{pending=new Set(JSON.parse(localStorage.getItem(PENDING_KEY)||"[]"))}catch(e){}
+function savePending(){try{localStorage.setItem(PENDING_KEY,JSON.stringify([...pending]))}catch(e){}}
+function updateSendBtn(){
+  const b=$("#sendBtn"); if(!REMOTE) return;
+  b.textContent=sending?"กำลังส่ง…":(pending.size?`ส่งข้อมูล (${pending.size})`:"ส่งข้อมูล");
+  b.disabled=sending;
+  if(pending.size) setSaveState("warn",`มี ${pending.size} คำตอบที่ยังไม่ได้ส่ง · กด "ส่งข้อมูล"`);
+}
+async function sendPending(){
+  if(sending) return;
+  const who=$("#me").value.trim();
+  if(!who){ $("#me").focus(); toast("ใส่ชื่อผู้เช็คก่อนส่งข้อมูล"); return; }
+  if(!pending.size){ toast("ไม่มีคำตอบใหม่ที่ต้องส่ง"); return; }
+  const ids=[...pending], items={};
+  ids.forEach(id=>{ if(feedback[id]){ if(!feedback[id].by) feedback[id].by=who; items[id]=feedback[id]; } });
+  sending=true; updateSendBtn();
+  try{
+    const r=await fetch(SHEET_URL,{method:"POST",headers:{"Content-Type":"text/plain;charset=utf-8"},body:JSON.stringify({items})});
+    const j=await r.json(); if(!j.ok) throw new Error(j.error||"failed");
+    ids.forEach(id=>{ if(feedback[id]===items[id]) pending.delete(id); });
+    savePending(); setSaveState("ok","ส่งข้อมูลแล้ว · เจ้าของเห็นคำตอบในชีตทันที");
+    toast(`ส่งข้อมูลแล้ว ${Object.keys(items).length} รายการ`);
+  }catch(e){
+    setSaveState("warn","ส่งไม่สำเร็จ · ตรวจอินเทอร์เน็ตแล้วกดส่งข้อมูลอีกครั้ง");
+    toast("ส่งไม่สำเร็จ ลองอีกครั้ง");
+  }finally{ sending=false; updateSendBtn(); }
+}
+$("#sendBtn").onclick=sendPending;
 
 function buildFileHtml(rev){
   const json=JSON.stringify({rev,savedAt:Date.now(),savedBy:$("#me").value.trim(),items:feedback}).replace(/</g,"\\u003c");
@@ -463,6 +500,15 @@ let dirty=false;
 try{const d=JSON.parse(localStorage.getItem(DRAFT_KEY)||"null"); if(d&&typeof d==="object"){ if(mergeInto(d)>0) setDirty(true);} }catch(e){}
 render();
 setSaveState("warn","คำตอบเก็บในไฟล์นี้ · กดบันทึกไฟล์เพื่อส่งกลับ");
+if(REMOTE){
+  $("#sendBtn").hidden=false; $("#saveFileBtn").hidden=true; $("#importBtn").hidden=true;
+  $("#howtoRemote").hidden=false; $("#howto").firstElementChild.hidden=true; $("#howto").children[1].hidden=true;
+  setSaveState("warn","กำลังโหลดคำตอบล่าสุด…");
+  fetch(SHEET_URL).then(r=>r.json()).then(j=>{
+    if(j&&j.items){ mergeInto(j.items); renderTable(); }
+    setSaveState("ok","เชื่อมต่อแล้ว · กด \"ส่งข้อมูล\" แล้วคำตอบจะถึงเจ้าของทันที"); updateSendBtn();
+  }).catch(()=>{ setSaveState("warn","โหลดคำตอบเดิมไม่ได้ · ยังกรอกและกดส่งข้อมูลได้"); updateSendBtn(); });
+}
 
 (async()=>{
   const ns = window.claude ? await claude.use("db").catch(()=>null) : null;

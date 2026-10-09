@@ -8,6 +8,7 @@
 ตัวอย่าง
   python3 kr_tracker.py build KR_May_to_Oct.xls
   python3 kr_tracker.py build KR_May_to_Oct.xls -o dist/KR_Tracker.html
+  python3 kr_tracker.py build KR_May_to_Oct.xls --sheet-url https://script.google.com/macros/s/.../exec
   python3 kr_tracker.py merge returned/*.html
   python3 kr_tracker.py merge returned/*.html --base dist/KR_Lost_Customer_Tracker.html -o merged
 
@@ -27,6 +28,7 @@ import pandas as pd
 
 ROOT = Path(__file__).resolve().parent
 TEMPLATE = ROOT / "src" / "template.html"
+CONFIG = ROOT / "config.json"
 MONTH_TH = {1: "ม.ค.", 2: "ก.พ.", 3: "มี.ค.", 4: "เม.ย.", 5: "พ.ค.", 6: "มิ.ย.",
             7: "ก.ค.", 8: "ส.ค.", 9: "ก.ย.", 10: "ต.ค.", 11: "พ.ย.", 12: "ธ.ค."}
 RESULT_TH = {
@@ -97,8 +99,16 @@ def build_data(d: pd.DataFrame) -> dict:
         org=summarise(d, periods, "Org", "Org", "Shipper"))
 
 
-def render_html(data: dict, template: Path = TEMPLATE) -> str:
+def load_config() -> dict:
+    try:
+        return json.loads(CONFIG.read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        return {}
+
+
+def render_html(data: dict, template: Path = TEMPLATE, sheet_url: str = "") -> str:
     t = template.read_text(encoding="utf-8")
+    t = t.replace("__SHEET_URL__", json.dumps(sheet_url), 1)
     payload = json.dumps(data, ensure_ascii=False, separators=(",", ":")).replace("</", "<\\/")
     # month labels follow the data instead of the fixed May–Oct list
     t = re.sub(r"const MNAME = \[[^\]]*\];", "const MNAME = DATA.monthNames;", t, count=1)
@@ -134,10 +144,18 @@ def cmd_build(a) -> None:
     data = build_data(d)
     out = Path(a.output) if a.output else ROOT / "dist" / "KR_Lost_Customer_Tracker.html"
     out.parent.mkdir(parents=True, exist_ok=True)
-    out.write_text(render_html(data), encoding="utf-8")
+    cfg = load_config()
+    if a.sheet_url is not None:
+        if a.sheet_url and not a.sheet_url.startswith("https://script.google.com/"):
+            sys.exit("--sheet-url ต้องเป็น Web app URL ของ Google Apps Script (https://script.google.com/...)")
+        cfg["sheet_url"] = a.sheet_url
+        CONFIG.write_text(json.dumps(cfg, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    sheet_url = cfg.get("sheet_url", "")
+    out.write_text(render_html(data, sheet_url=sheet_url), encoding="utf-8")
     if a.json:
         Path(a.json).write_text(json.dumps(data, ensure_ascii=False), encoding="utf-8")
     print(f"อ่าน {len(d)} bookings จาก {src.name} -> {out}")
+    print("ส่งคำตอบไปที่ Google Sheet: " + (sheet_url or "ไม่ได้ตั้งค่า (เซลต้องบันทึกไฟล์ส่งกลับ)"))
     print_summary(data)
 
 
@@ -231,6 +249,7 @@ def main() -> None:
     b.add_argument("xls", help="ไฟล์ booking export (.xls / .xlsx)")
     b.add_argument("-o", "--output", help="ไฟล์ HTML ปลายทาง (ค่าเริ่มต้น dist/KR_Lost_Customer_Tracker.html)")
     b.add_argument("--json", help="บันทึกข้อมูลที่คำนวณเป็น JSON ด้วย")
+    b.add_argument("--sheet-url", help="Web app URL ของ Google Apps Script สำหรับรับคำตอบ (จำไว้ใน config.json, ใส่ \"\" เพื่อยกเลิก)")
     b.set_defaults(func=cmd_build)
     m = sub.add_parser("merge", help="รวมไฟล์ HTML ที่เซลส่งกลับ")
     m.add_argument("files", nargs="+", help="ไฟล์ HTML ที่ได้รับคืน (ใช้ *.html ได้)")
