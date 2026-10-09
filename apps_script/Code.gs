@@ -24,8 +24,27 @@ const RESULT_TH = {
 const TYPE_TH = {lost: 'หายไปเดือนนี้', drop: 'ลดลง ≥50%', gone: 'หายไปก่อนหน้า', new: 'ลูกค้าใหม่'};
 const ID_RE = /^(cust|org)~\d{4}-\d{2}~[a-z0-9]+$/;
 
+/** ใช้ชีตที่สคริปต์ผูกอยู่ ถ้าสร้างสคริปต์แยก (script.google.com) จะสร้างชีต "KR Lost Customer Feedback" ใน Drive ให้ */
+function book_() {
+  const active = SpreadsheetApp.getActiveSpreadsheet();
+  if (active) return active;
+  const props = PropertiesService.getScriptProperties();
+  const id = props.getProperty('SHEET_ID');
+  if (id) return SpreadsheetApp.openById(id);
+  const ss = SpreadsheetApp.create('KR Lost Customer Feedback');
+  props.setProperty('SHEET_ID', ss.getId());
+  return ss;
+}
+
+/** กด Run ฟังก์ชันนี้ใน Apps Script เพื่อดูลิงก์ Google Sheet ที่เก็บคำตอบ (ดูใน Execution log) */
+function setup() {
+  const ss = book_();
+  sheet_(LATEST); sheet_(LOG);
+  Logger.log('Google Sheet ที่เก็บคำตอบ: ' + ss.getUrl());
+}
+
 function sheet_(name) {
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const ss = book_();
   let sh = ss.getSheetByName(name);
   if (!sh) {
     sh = ss.insertSheet(name);
