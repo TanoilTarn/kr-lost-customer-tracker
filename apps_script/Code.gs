@@ -1,31 +1,33 @@
 /**
- * KR Lost Customer Tracker — ตัวรับคำตอบจากเซล (Google Apps Script)
+ * KR Lost Customer Tracker — receives sales feedback (Google Apps Script)
  *
- * ติดตั้ง
- *  1. เปิดโปรเจกต์ Apps Script (หรือ Google Sheet → Extensions → Apps Script)
- *  2. ลบโค้ดเดิมทั้งหมด วางไฟล์นี้ทั้งไฟล์ → Save
- *  3. เลือกฟังก์ชัน setup → Run → อนุญาตสิทธิ์ (Execution log จะแสดงลิงก์ Google Sheet ที่เก็บคำตอบ)
+ * Setup
+ *  1. Open the Apps Script project (or Google Sheet → Extensions → Apps Script)
+ *  2. Delete all existing code, paste this whole file → Save
+ *  3. Choose the function "setup" → Run → allow access (the Execution log shows the Google Sheet link)
  *  4. Deploy → New deployment → Select type: Web app
  *       Execute as: Me   ·   Who has access: Anyone
- *  5. กด Deploy → คัดลอก Web app URL (ลงท้ายด้วย /exec) เปิดในเบราว์เซอร์ต้องเห็น {"ok":true,...}
- *  6. รัน: python kr_tracker.py build "KR May to Oct.xls" --sheet-url <URL>
+ *  5. Click Deploy → copy the Web app URL (ends with /exec); opening it in a browser must show {"ok":true,...}
+ *  6. Run: python kr_tracker.py build "KR May to Oct.xls" --sheet-url <URL>
  *
- * ชีต "Feedback" = คำตอบล่าสุดของลูกค้าแต่ละราย · ชีต "Log" = ประวัติทุกครั้งที่กดส่ง
+ * Sheet "Feedback" = latest answer per customer · Sheet "Log" = every submission
  */
 const LATEST = 'Feedback';
 const LOG = 'Log';
-const HEAD = ['id', 'เดือน', 'มุมมอง', 'รหัส', 'ลูกค้า', 'Sales', 'ประเภท', 'result',
-              'ผลการเช็ค', 'หมายเหตุ', 'ผู้เช็ค', 'เวลาบันทึก', 'at'];
-const RESULT_TH = {
-  back: 'จะกลับมาจอง / มีงานเดือนหน้า', shift: 'เลื่อนชิปเมนต์ / ไปอยู่เรือเดือนถัดไป',
-  price: 'ราคาสู้คู่แข่งไม่ได้', competitor: 'ย้ายไปใช้สายเรืออื่น',
-  space: 'ปัญหาพื้นที่ / ตารางเรือ / อุปกรณ์', noorder: 'ออเดอร์ลด / ไม่มีสินค้า',
-  spot: 'เป็นงาน spot ไม่ประจำ', closed: 'เลิกส่งเส้นทางนี้ / ปิดกิจการ', other: 'อื่นๆ (ดูหมายเหตุ)',
+const HEAD = ['id', 'Month', 'View', 'Code', 'Customer', 'Sales', 'Type', 'result',
+              'Check result', 'Note', 'Checked by', 'Saved at', 'at'];
+const RESULT_EN = {
+  back: 'Will book again / has cargo next month', shift: 'Shipment postponed / moved to next month vessel',
+  price: 'Price not competitive', competitor: 'Moved to another carrier',
+  space: 'Space / schedule / equipment issue', noorder: 'Fewer orders / no cargo',
+  spot: 'Spot cargo, not regular', closed: 'Stopped this route / closed business', other: 'Other (see note)',
 };
+const TYPE_EN = {lost: 'Lost this month', drop: 'Dropped ≥50%', gone: 'Lost earlier', new: 'New customer'};
+// labels written by the earlier Thai version, so old rows still read back correctly
 const TYPE_TH = {lost: 'หายไปเดือนนี้', drop: 'ลดลง ≥50%', gone: 'หายไปก่อนหน้า', new: 'ลูกค้าใหม่'};
 const ID_RE = /^(cust|org)~\d{4}-\d{2}~[a-z0-9]+$/;
 
-/** ใช้ชีตที่สคริปต์ผูกอยู่ ถ้าสร้างสคริปต์แยก (script.google.com) จะสร้างชีต "KR Lost Customer Feedback" ใน Drive ให้ */
+/** Uses the bound spreadsheet; a standalone script creates "KR Lost Customer Feedback" in Drive */
 function book_() {
   const active = SpreadsheetApp.getActiveSpreadsheet();
   if (active) return active;
@@ -37,11 +39,11 @@ function book_() {
   return ss;
 }
 
-/** กด Run ฟังก์ชันนี้ใน Apps Script เพื่อดูลิงก์ Google Sheet ที่เก็บคำตอบ (ดูใน Execution log) */
+/** Run this once in Apps Script; the Execution log shows the Google Sheet link */
 function setup() {
   const ss = book_();
   sheet_(LATEST); sheet_(LOG);
-  Logger.log('Google Sheet ที่เก็บคำตอบ: ' + ss.getUrl());
+  Logger.log('Feedback Google Sheet: ' + ss.getUrl());
 }
 
 function sheet_(name) {
@@ -49,10 +51,10 @@ function sheet_(name) {
   let sh = ss.getSheetByName(name);
   if (!sh) {
     sh = ss.insertSheet(name);
-    sh.appendRow(HEAD);
     sh.setFrozenRows(1);
-    sh.getRange(1, 1, 1, HEAD.length).setFontWeight('bold');
   }
+  const head = sh.getRange(1, 1, 1, HEAD.length);
+  if (head.getValues()[0].join('|') !== HEAD.join('|')) head.setValues([HEAD]).setFontWeight('bold');
   return sh;
 }
 
@@ -62,28 +64,32 @@ function json_(obj) {
 
 function str_(v, max) { return String(v == null ? '' : v).slice(0, max || 200); }
 
+function typeKey_(label) {
+  return Object.keys(TYPE_EN).find(k => TYPE_EN[k] === label || TYPE_TH[k] === label) || label;
+}
+
 function toRow_(id, r) {
   const at = Number(r.at) || Date.now();
   return [id, "'" + str_(r.month, 7), r.view === 'cust' ? 'Shipper' : 'Org Shipper', "'" + str_(r.key, 60),
-          str_(r.name), str_(r.sales, 80), TYPE_TH[r.type] || str_(r.type, 20), str_(r.result, 20),
-          RESULT_TH[r.result] || '', str_(r.note, 2000), str_(r.by, 80), new Date(at), at];
+          str_(r.name), str_(r.sales, 80), TYPE_EN[r.type] || str_(r.type, 20), str_(r.result, 20),
+          RESULT_EN[r.result] || '', str_(r.note, 2000), str_(r.by, 80), new Date(at), at];
 }
 
-/** หน้าเว็บดึงคำตอบล่าสุดทั้งหมด */
+/** The page loads the latest answers */
 function doGet() {
   const sh = sheet_(LATEST);
   const values = sh.getDataRange().getValues().slice(1);
   const items = {};
   values.forEach(v => {
     if (!ID_RE.test(v[0])) return;
-    items[v[0]] = {month: v[1] instanceof Date ? Utilities.formatDate(v[1], 'Asia/Bangkok', 'yyyy-MM') : String(v[1]), view: v[2] === 'Shipper' ? 'cust' : 'org', key: String(v[3]), name: v[4],
-                   sales: v[5], type: Object.keys(TYPE_TH).find(k => TYPE_TH[k] === v[6]) || v[6],
-                   result: v[7], note: v[9], by: v[10], at: Number(v[12]) || 0};
+    items[v[0]] = {month: v[1] instanceof Date ? Utilities.formatDate(v[1], 'Asia/Bangkok', 'yyyy-MM') : String(v[1]),
+                   view: v[2] === 'Shipper' ? 'cust' : 'org', key: String(v[3]), name: v[4],
+                   sales: v[5], type: typeKey_(v[6]), result: v[7], note: v[9], by: v[10], at: Number(v[12]) || 0};
   });
   return json_({ok: true, items: items});
 }
 
-/** หน้าเว็บส่งคำตอบ: {items: {id: {result, note, by, at, view, month, key, name, sales, type}}} */
+/** The page submits answers: {items: {id: {result, note, by, at, view, month, key, name, sales, type}}} */
 function doPost(e) {
   let body;
   try { body = JSON.parse(e.postData.contents); } catch (err) { return json_({ok: false, error: 'bad json'}); }
