@@ -1,0 +1,480 @@
+<title>KR Lost Customer Tracker</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bai+Jamjuree:wght@500;600;700&family=IBM+Plex+Sans+Thai:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: control bar → monthly TEU strip → KPI row → worklist table with inline sales feedback */
+:root{
+  --bg:#f2f4f6; --surface:#ffffff; --sunk:#e8ecf0; --line:#d5dbe2; --fg:#15202b; --muted:#5d6b78;
+  --accent:#1d5bb8; --accent-soft:#e3ecfa;
+  --lost:#c2372b; --lost-soft:#fbe7e4; --drop:#b86e00; --drop-soft:#fdf0d9;
+  --gone:#6a5a8c; --gone-soft:#ece8f4; --new:#1f7a4d; --new-soft:#e1f2e8;
+  --heat:29,91,184;
+  --f-display:"Bai Jamjuree","IBM Plex Sans Thai",system-ui,sans-serif;
+  --f-body:"IBM Plex Sans Thai",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --f-mono:"IBM Plex Mono",ui-monospace,Menlo,Consolas,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0f151b; --surface:#17202a; --sunk:#1e2934; --line:#2c3a47; --fg:#e4eaf0; --muted:#93a2b0;
+  --accent:#6ea2f0; --accent-soft:#1c2c45;
+  --lost:#f0786c; --lost-soft:#3a1f1d; --drop:#e9a640; --drop-soft:#3a2c14;
+  --gone:#b3a3d6; --gone-soft:#2a2438; --new:#5cc58e; --new-soft:#173226; --heat:110,162,240; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0f151b; --surface:#17202a; --sunk:#1e2934; --line:#2c3a47; --fg:#e4eaf0; --muted:#93a2b0;
+  --accent:#6ea2f0; --accent-soft:#1c2c45;
+  --lost:#f0786c; --lost-soft:#3a1f1d; --drop:#e9a640; --drop-soft:#3a2c14;
+  --gone:#b3a3d6; --gone-soft:#2a2438; --new:#5cc58e; --new-soft:#173226; --heat:110,162,240; color-scheme:dark}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--fg);font-family:var(--f-body);font-size:14px;line-height:1.5}
+.wrap{max-width:1320px;margin:0 auto;padding-inline:20px;padding-block:20px 48px;display:flex;flex-direction:column;gap:18px}
+h1{font-family:var(--f-display);font-weight:700;font-size:26px;margin:0;letter-spacing:.01em;text-wrap:balance}
+h2{font-family:var(--f-display);font-weight:600;font-size:17px;margin:0}
+.sub{color:var(--muted);margin:2px 0 0;font-size:13px}
+.num,.mono{font-family:var(--f-mono);font-variant-numeric:tabular-nums}
+header{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:flex-end;gap:12px}
+.save-state{font-size:12px;color:var(--muted);display:flex;align-items:center;gap:6px}
+.dot{width:8px;height:8px;border-radius:50%;background:var(--muted)}
+.dot.ok{background:var(--new)} .dot.warn{background:var(--drop)}
+
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:16px}
+.controls{display:flex;flex-wrap:wrap;gap:14px 22px;align-items:flex-end}
+.ctl{display:flex;flex-direction:column;gap:4px;min-width:0}
+.ctl>label,.lbl{font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);font-weight:600}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:8px;overflow:hidden;background:var(--sunk)}
+.seg button{border:0;background:transparent;color:var(--fg);font:inherit;font-size:13px;padding:6px 12px;cursor:pointer}
+.seg button+button{border-left:1px solid var(--line)}
+.seg button[aria-pressed="true"]{background:var(--accent);color:#fff}
+:root[data-theme="dark"] .seg button[aria-pressed="true"]{color:#0f151b}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]) .seg button[aria-pressed="true"]{color:#0f151b}}
+select,input[type=text],input[type=search],textarea{font:inherit;font-size:13px;color:var(--fg);background:var(--surface);border:1px solid var(--line);border-radius:6px;padding:6px 8px}
+select:focus,input:focus,textarea:focus,button:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
+.btn{font:inherit;font-size:13px;border:1px solid var(--line);background:var(--surface);color:var(--fg);border-radius:6px;padding:6px 12px;cursor:pointer}
+.btn:hover{border-color:var(--accent)}
+
+.strip{display:grid;grid-template-columns:minmax(0,1.4fr) minmax(0,1fr);gap:18px}
+@media (max-width:860px){.strip{grid-template-columns:1fr}}
+.chart svg{width:100%;height:auto;display:block}
+.chart text{fill:var(--muted);font-family:var(--f-mono);font-size:11px}
+.chart .v{fill:var(--fg);font-weight:500}
+.kpis{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.kpi{border-radius:8px;padding:10px 12px;background:var(--sunk);display:flex;flex-direction:column;gap:2px;cursor:pointer;border:2px solid transparent;text-align:left;font:inherit;color:inherit}
+.kpi[aria-pressed="true"]{border-color:currentColor}
+.kpi .big{font-family:var(--f-mono);font-size:22px;font-weight:500;line-height:1.2}
+.kpi .small{font-size:12px;color:var(--muted)}
+.kpi.lost{background:var(--lost-soft);color:var(--lost)} .kpi.drop{background:var(--drop-soft);color:var(--drop)}
+.kpi.gone{background:var(--gone-soft);color:var(--gone)} .kpi.new{background:var(--new-soft);color:var(--new)}
+.kpi .t{font-size:13px;font-weight:600}
+.note{font-size:12.5px;color:var(--muted);margin:0;max-width:75ch}
+.monthline{display:flex;flex-wrap:wrap;gap:6px 16px;font-size:13px;margin-top:8px}
+.monthline b{font-family:var(--f-mono);font-weight:500}
+
+.tablebar{display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between;margin-bottom:10px}
+.tablebar .left{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+.progress{font-size:13px;color:var(--muted)}
+.progress b{color:var(--fg);font-family:var(--f-mono)}
+.tscroll{overflow-x:auto;border:1px solid var(--line);border-radius:8px}
+table{border-collapse:collapse;width:100%;min-width:1080px;background:var(--surface)}
+th{font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);font-weight:600;text-align:left;padding:8px;background:var(--sunk);border-bottom:1px solid var(--line);position:sticky;top:0}
+td{padding:8px;border-bottom:1px solid var(--line);vertical-align:top}
+tr:last-child td{border-bottom:0}
+th.m,td.m{text-align:right;padding-inline:4px;width:46px}
+td.m{font-family:var(--f-mono);font-variant-numeric:tabular-nums;font-size:12.5px}
+td.m.cur{outline:2px solid var(--accent);outline-offset:-2px}
+th.m.cur{color:var(--accent)}
+.cname{font-weight:600;line-height:1.3}
+.cmeta{font-size:12px;color:var(--muted);margin-top:2px}
+.orgs{font-size:12px;color:var(--muted);margin-top:4px}
+.chip{display:inline-block;font-size:11.5px;font-weight:600;border-radius:999px;padding:1px 8px;white-space:nowrap}
+.chip.lost{background:var(--lost-soft);color:var(--lost)} .chip.drop{background:var(--drop-soft);color:var(--drop)}
+.chip.gone{background:var(--gone-soft);color:var(--gone)} .chip.new{background:var(--new-soft);color:var(--new)}
+.impact{font-family:var(--f-mono);font-size:13px;font-weight:500}
+.fb{display:flex;flex-direction:column;gap:6px;min-width:260px}
+.fb select{width:100%}
+.fb textarea{width:100%;min-height:34px;resize:vertical}
+.fb .who{display:flex;gap:6px;align-items:center;font-size:11.5px;color:var(--muted)}
+.fb.done select{border-color:var(--new);background:var(--new-soft)}
+.empty{padding:28px;text-align:center;color:var(--muted)}
+.namebox{display:flex;gap:6px;align-items:center}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:var(--surface);font-weight:600}
+.howto{display:flex;flex-direction:column;gap:4px;font-size:13px;background:var(--accent-soft);border-radius:10px;padding:12px 16px;max-width:none}
+.howto .dirty{color:var(--drop);font-weight:600}
+.toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(16px + env(safe-area-inset-bottom,0px));background:var(--fg);color:var(--bg);padding:8px 14px;border-radius:8px;font-size:13px;opacity:0;transition:opacity .2s;pointer-events:none}
+.toast.show{opacity:1}
+@media (prefers-reduced-motion: reduce){.toast{transition:none}}
+@media (max-width:520px){.wrap{padding-inline:16px}.kpis{grid-template-columns:1fr 1fr}h1{font-size:22px}}
+</style>
+
+<div class="wrap">
+  <header>
+    <div>
+      <h1>KR Lost Customer Tracker</h1>
+      <p class="sub">TH → Korea · ยอดจองแยกตามเดือนของ ETD เรือ · ข้อมูลอัปเดต <span class="mono" id="asof"></span></p>
+    </div>
+    <div class="save-state" id="saveState"><span class="dot"></span><span>กำลังเชื่อมต่อที่บันทึก…</span></div>
+  </header>
+
+  <section class="howto" id="howto">
+    <div><b>สำหรับเซล</b> เลือกชื่อตัวเองในช่อง Sales → ใส่ "ชื่อผู้เช็ค" → เลือกผลการเช็คและพิมพ์รายละเอียด → กด <b>บันทึกไฟล์ (ส่งกลับ)</b> แล้วส่งไฟล์ที่ได้กลับทางอีเมล/LINE</div>
+    <div><b>สำหรับเจ้าของ</b> กด <b>รวมไฟล์จากเซล</b> แล้วเลือกไฟล์ที่ได้รับ (เลือกหลายไฟล์พร้อมกันได้) คำตอบทั้งหมดจะรวมเข้าตาราง จากนั้นกดบันทึกไฟล์เพื่อเก็บฉบับรวม</div>
+    <div class="dirty" id="dirty" hidden>มีคำตอบที่ยังไม่ได้บันทึกลงไฟล์ · กด "บันทึกไฟล์ (ส่งกลับ)" ก่อนปิด</div>
+  </section>
+
+  <section class="panel controls" aria-label="ตัวกรอง">
+    <div class="ctl"><label>เดือนที่ดู</label><div class="seg" id="monthSeg"></div></div>
+    <div class="ctl"><label>นับลูกค้าแบบ</label><div class="seg" id="viewSeg">
+      <button type="button" data-v="cust" aria-pressed="true">ผู้จอง (Shipper)</button>
+      <button type="button" data-v="org" aria-pressed="false">เจ้าของสินค้า (Org Shipper)</button>
+    </div></div>
+    <div class="ctl"><label for="salesSel">Sales</label><select id="salesSel"><option value="">ทุกคน</option></select></div>
+    <div class="ctl"><label for="fbSel">สถานะการเช็ค</label><select id="fbSel">
+      <option value="">ทั้งหมด</option><option value="todo">ยังไม่เช็ค</option><option value="done">เช็คแล้ว</option></select></div>
+    <div class="ctl" style="flex:1 1 200px"><label for="q">ค้นหา</label><input type="search" id="q" placeholder="ชื่อลูกค้า / รหัส / org shipper"></div>
+  </section>
+
+  <section class="strip">
+    <div class="panel chart">
+      <div style="display:flex;justify-content:space-between;align-items:baseline;gap:8px;flex-wrap:wrap">
+        <h2>TEU รายเดือน (ETD)</h2><span class="lbl">คลิกแท่งเพื่อเลือกเดือน</span>
+      </div>
+      <div id="chart"></div>
+      <div class="monthline" id="monthline"></div>
+    </div>
+    <div class="panel" style="display:flex;flex-direction:column;gap:10px">
+      <h2 id="kpiTitle">สิ่งที่เปลี่ยนไปเดือนนี้</h2>
+      <div class="kpis" id="kpis"></div>
+      <p class="note" id="kpiNote"></p>
+    </div>
+  </section>
+
+  <section class="panel">
+    <div class="tablebar">
+      <div class="left">
+        <h2 id="listTitle">รายชื่อที่ต้องเช็ค</h2>
+        <span class="progress" id="progress"></span>
+      </div>
+      <div class="left">
+        <div class="namebox"><label class="lbl" for="me">ชื่อผู้เช็ค</label><input type="text" id="me" placeholder="ชื่อของคุณ" style="width:140px"></div>
+        <button class="btn primary" id="saveFileBtn" type="button">บันทึกไฟล์ (ส่งกลับ)</button>
+        <button class="btn" id="importBtn" type="button">รวมไฟล์จากเซล</button>
+        <input type="file" id="importInput" accept=".html,.htm" multiple hidden>
+        <button class="btn" id="exportBtn" type="button">ดาวน์โหลด CSV</button>
+      </div>
+    </div>
+    <div class="tscroll"><table>
+      <thead><tr id="thead"></tr></thead>
+      <tbody id="tbody"></tbody>
+    </table></div>
+  </section>
+</div>
+<div class="toast" id="toast" role="status"></div>
+
+<script type="application/json" id="fbdata">{"rev":"","items":{}}</script>
+<script>
+const DATA = __DATA__;
+const MNAME = ["พ.ค.","มิ.ย.","ก.ค.","ส.ค.","ก.ย.","ต.ค."];
+const RESULTS = [
+  ["", "— ยังไม่เช็ค —"],
+  ["back", "จะกลับมาจอง / มีงานเดือนหน้า"],
+  ["shift", "เลื่อนชิปเมนต์ / ไปอยู่เรือเดือนถัดไป"],
+  ["price", "ราคาสู้คู่แข่งไม่ได้"],
+  ["competitor", "ย้ายไปใช้สายเรืออื่น"],
+  ["space", "ปัญหาพื้นที่ / ตารางเรือ / อุปกรณ์"],
+  ["noorder", "ออเดอร์ลด / ไม่มีสินค้า"],
+  ["spot", "เป็นงาน spot ไม่ประจำ"],
+  ["closed", "เลิกส่งเส้นทางนี้ / ปิดกิจการ"],
+  ["other", "อื่นๆ (ดูหมายเหตุ)"]
+];
+const RES_LABEL = Object.fromEntries(RESULTS);
+const TYPE = {lost:"หายไปเดือนนี้", drop:"ลดลง ≥50%", gone:"หายไปก่อนหน้า", new:"ลูกค้าใหม่"};
+
+let state = {m:5, view:"cust", sales:"", fb:"", q:"", types:new Set(["lost","drop"])};
+let feedback = {};       // docId -> {result,note,by,at}
+let db = null, saveMode = "local";
+const $ = s => document.querySelector(s);
+const fmt = v => v===0 ? "·" : (Number.isInteger(v) ? String(v) : v.toFixed(1));
+const esc = s => String(s).replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+
+function hash(str){let h=2166136261;for(let i=0;i<str.length;i++){h^=str.charCodeAt(i);h=Math.imul(h,16777619)}return (h>>>0).toString(36)}
+function docId(view,m,key){return `${view}~${DATA.months[m]}~${hash(key)}`}
+
+function classify(c,m){
+  const t=c.t, cur=t[m], prev=m>0?t[m-1]:0, before=t.slice(0,m);
+  if(cur===0 && prev>0) return {type:"lost", impact:prev, base:prev};
+  if(cur===0 && prev===0 && before.some(v=>v>0)){
+    const act=before.filter(v=>v>0); return {type:"gone", impact:act.reduce((a,b)=>a+b,0)/act.length, base:0};
+  }
+  if(cur>0 && prev>0 && cur<=prev*0.5) return {type:"drop", impact:prev-cur, base:prev};
+  if(cur>0 && before.every(v=>v===0) && m>0) return {type:"new", impact:cur, base:0};
+  return null;
+}
+
+function rowsFor(){
+  const list=DATA[state.view]; const out=[];
+  for(const c of list){ const k=classify(c,state.m); if(k) out.push({c,...k}); }
+  return out;
+}
+
+/* ---------- controls ---------- */
+function buildMonthSeg(){
+  const seg=$("#monthSeg");
+  seg.innerHTML = DATA.months.map((_,i)=> i===0?"":`<button type="button" data-m="${i}" aria-pressed="${i===state.m}">${MNAME[i]}</button>`).join("");
+  seg.onclick=e=>{const b=e.target.closest("button");if(!b)return;state.m=+b.dataset.m;render()};
+}
+$("#viewSeg").onclick=e=>{const b=e.target.closest("button");if(!b)return;state.view=b.dataset.v;
+  document.querySelectorAll("#viewSeg button").forEach(x=>x.setAttribute("aria-pressed",x===b));render()};
+function buildSales(){
+  const names=new Set(); for(const v of ["cust","org"]) DATA[v].forEach(c=>names.add(c.s));
+  $("#salesSel").innerHTML='<option value="">ทุกคน</option>'+[...names].sort((a,b)=>a.localeCompare(b)).map(n=>`<option>${esc(n)}</option>`).join("");
+}
+$("#salesSel").onchange=e=>{state.sales=e.target.value;render()};
+$("#fbSel").onchange=e=>{state.fb=e.target.value;render()};
+$("#q").oninput=e=>{state.q=e.target.value.trim().toLowerCase();renderTable()};
+try{ $("#me").value=localStorage.getItem("kr-me")||""; }catch(e){}
+$("#me").onchange=e=>{try{localStorage.setItem("kr-me",e.target.value.trim())}catch(_){}};
+
+/* ---------- chart ---------- */
+function renderChart(){
+  const W=560,H=190,pl=40,pr=8,pt=22,pb=26, n=6, max=Math.max(...DATA.total)*1.08;
+  const bw=(W-pl-pr)/n, y=v=>pt+(H-pt-pb)*(1-v/max);
+  let s=`<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="TEU รายเดือน">`;
+  [500,1000].forEach(g=>{s+=`<line x1="${pl}" x2="${W-pr}" y1="${y(g)}" y2="${y(g)}" stroke="var(--line)" stroke-dasharray="3 3"/><text x="${pl-6}" y="${y(g)+4}" text-anchor="end">${g}</text>`});
+  DATA.total.forEach((v,i)=>{
+    const x=pl+i*bw+bw*0.18, w=bw*0.64, sel=i===state.m;
+    s+=`<g style="cursor:${i?'pointer':'default'}" data-m="${i}"><rect x="${pl+i*bw}" y="${pt}" width="${bw}" height="${H-pt-pb}" fill="transparent"/>
+      <rect x="${x}" y="${y(v)}" width="${w}" height="${H-pb-y(v)}" rx="3" fill="${sel?'var(--accent)':'var(--line)'}"/>
+      <text class="v" x="${x+w/2}" y="${y(v)-6}" text-anchor="middle">${v}</text>
+      <text x="${x+w/2}" y="${H-8}" text-anchor="middle" ${sel?'style="fill:var(--accent);font-weight:600"':''}>${MNAME[i]}</text></g>`;
+  });
+  s+="</svg>"; $("#chart").innerHTML=s;
+  $("#chart svg").onclick=e=>{const g=e.target.closest("g[data-m]");if(!g||g.dataset.m==="0")return;state.m=+g.dataset.m;render()};
+  const m=state.m, d=DATA.total[m]-DATA.total[m-1], pct=(d/DATA.total[m-1]*100).toFixed(1);
+  const avg=DATA.total.slice(0,m).reduce((a,b)=>a+b,0)/m;
+  $("#monthline").innerHTML=`<span>${MNAME[m]} <b>${DATA.total[m]}</b> TEU · <b>${DATA.totalBk[m]}</b> bookings</span>
+    <span>เทียบ ${MNAME[m-1]}: <b style="color:${d<0?'var(--lost)':'var(--new)'}">${d>0?'+':''}${d} (${d>0?'+':''}${pct}%)</b></span>
+    <span>เทียบเฉลี่ยก่อนหน้า: <b>${Math.round(avg)}</b> TEU</span>`;
+}
+
+/* ---------- KPIs ---------- */
+function renderKpis(all){
+  const g={lost:[],drop:[],gone:[],new:[]}; all.forEach(r=>g[r.type].push(r));
+  const sum=(a,f)=>a.reduce((s,r)=>s+f(r),0);
+  const m=state.m;
+  const cards=[
+    ["lost", g.lost.length, `เคยจอง ${sum(g.lost,r=>r.c.t[m-1])} TEU ใน${MNAME[m-1]}`],
+    ["drop", g.drop.length, `TEU หายไป ${sum(g.drop,r=>r.impact)} จากเดือนก่อน`],
+    ["gone", g.gone.length, `เฉลี่ยตอนที่ยังจอง ~${Math.round(sum(g.gone,r=>r.impact))} TEU/เดือน`],
+    ["new",  g.new.length, `เข้ามาใหม่ ${sum(g.new,r=>r.c.t[m])} TEU`]
+  ];
+  $("#kpiTitle").textContent=`สิ่งที่เปลี่ยนไปใน${MNAME[m]} เทียบ ${MNAME[m-1]}`;
+  $("#kpis").innerHTML=cards.map(([k,n,s])=>`<button type="button" class="kpi ${k}" data-k="${k}" aria-pressed="${state.types.has(k)}">
+     <span class="t">${TYPE[k]}</span><span class="big">${n} ราย</span><span class="small">${s}</span></button>`).join("");
+  $("#kpis").onclick=e=>{const b=e.target.closest(".kpi");if(!b)return;const k=b.dataset.k;
+    state.types.has(k)?state.types.delete(k):state.types.add(k); if(!state.types.size) state.types.add(k); render()};
+  let note=`กดการ์ดเพื่อเลือกกลุ่มที่จะแสดงในตาราง · "หายไปก่อนหน้า" = ไม่มียอดทั้ง${MNAME[m]}และ${MNAME[m-1]} แต่เคยจองในเดือนก่อนๆ`;
+  if(m===5) note+=` · ต.ค. ยังมี booking ของเรือปลายเดือนทยอยเข้ามา (ETD ล่าสุดในไฟล์ ${DATA.etdMax.slice(8)}/10) ลูกค้าบางรายอาจยังไม่ได้จอง`;
+  $("#kpiNote").textContent=note;
+}
+
+/* ---------- table ---------- */
+function renderHead(){
+  $("#thead").innerHTML=`<th>ลูกค้า</th><th>Sales</th>`+
+    DATA.months.map((_,i)=>`<th class="m ${i===state.m?'cur':''}">${MNAME[i]}</th>`).join("")+
+    `<th>ประเภท</th><th style="text-align:right">TEU ที่หาย</th><th>ETD ล่าสุด</th><th>ผลการเช็คจาก Sales</th>`;
+}
+function heat(v,max){ if(!v) return ""; const a=Math.min(.55,.08+.47*v/max); return `background:rgba(var(--heat),${a.toFixed(2)})`; }
+
+function filtered(all){
+  const q=state.q;
+  return all.filter(r=>{
+    if(!state.types.has(r.type)) return false;
+    if(state.sales && r.c.s!==state.sales && !r.c.ss.includes(state.sales)) return false;
+    const f=feedback[docId(state.view,state.m,r.c.k)], done=!!(f&&f.result);
+    if(state.fb==="todo"&&done) return false; if(state.fb==="done"&&!done) return false;
+    if(q){const hay=(r.c.n+" "+r.c.k+" "+r.c.o.map(o=>o[0]).join(" ")).toLowerCase(); if(!hay.includes(q)) return false;}
+    return true;
+  }).sort((a,b)=>({lost:0,drop:1,gone:2,new:3}[a.type]-{lost:0,drop:1,gone:2,new:3}[b.type])||b.impact-a.impact);
+}
+
+let currentRows=[];
+function renderTable(){
+  const all=rowsFor(); const rows=filtered(all); currentRows=rows;
+  const fbRows=all.filter(r=>r.type!=="new"&&state.types.has(r.type)&&(!state.sales||r.c.s===state.sales||r.c.ss.includes(state.sales)));
+  const done=fbRows.filter(r=>{const f=feedback[docId(state.view,state.m,r.c.k)];return f&&f.result}).length;
+  $("#progress").innerHTML=`แสดง <b>${rows.length}</b> ราย · เช็คแล้ว <b>${done}</b>/<b>${fbRows.length}</b>`;
+  $("#listTitle").textContent=`รายชื่อที่ต้องเช็ค · ${MNAME[state.m]}`;
+  if(!rows.length){$("#tbody").innerHTML=`<tr><td colspan="${DATA.months.length+6}" class="empty">ไม่มีรายการตามตัวกรองนี้</td></tr>`;return;}
+  $("#tbody").innerHTML=rows.map(r=>{
+    const c=r.c, id=docId(state.view,state.m,c.k), f=feedback[id]||{}, max=Math.max(...c.t,1);
+    const other = state.view==="cust" ? "Org: " : "จองผ่าน: ";
+    const orgs=c.o.slice(0,3).map(o=>esc(o[0])+` <span class="mono">(${o[1]})</span>`).join(" · ");
+    const lastIdx=[...c.t].map((v,i)=>v>0?i:-1).filter(i=>i>=0&&i<=state.m).pop();
+    const lastEtd= lastIdx!=null && c.lastByMonth[lastIdx] ? `${c.lastByMonth[lastIdx]}` : "";
+    const impact = r.type==="new" ? `+${fmt(r.impact)}` : (r.type==="gone"?`~${r.impact.toFixed(1)}`:`−${fmt(r.impact)}`);
+    const by = f.by||f.at ? `${f.by?esc(f.by):"ไม่ระบุชื่อ"}${f.at?" · "+new Date(f.at).toLocaleString("th-TH",{day:"numeric",month:"short",hour:"2-digit",minute:"2-digit"}):""}` : "";
+    return `<tr>
+      <td style="min-width:240px"><div class="cname">${esc(c.n)}</div>
+        <div class="cmeta"><span class="mono">${state.view==="cust"?esc(c.k):""}</span> ${c.pod.join(", ")} · ${esc(c.com[0]||"")}</div>
+        <div class="orgs">${other}${orgs}</div></td>
+      <td style="min-width:110px">${esc(c.s)}${c.ss.length>1?`<div class="cmeta">+ ${c.ss.filter(x=>x!==c.s).map(esc).join(", ")}</div>`:""}</td>
+      ${c.t.map((v,i)=>`<td class="m ${i===state.m?'cur':''}" style="${heat(v,max)}" title="${c.b[i]} bookings">${fmt(v)}</td>`).join("")}
+      <td><span class="chip ${r.type}">${TYPE[r.type]}</span></td>
+      <td style="text-align:right" class="impact">${impact}</td>
+      <td class="mono" style="font-size:12.5px">${lastEtd}</td>
+      <td>${r.type==="new"?'<span class="cmeta">—</span>':`<div class="fb ${f.result?'done':''}" data-id="${id}">
+        <select data-f="result" aria-label="ผลการเช็ค">${RESULTS.map(([v,l])=>`<option value="${v}" ${v===(f.result||"")?"selected":""}>${l}</option>`).join("")}</select>
+        <textarea data-f="note" rows="1" placeholder="รายละเอียด เช่น คู่แข่ง/ราคา/เดือนที่จะกลับมา">${esc(f.note||"")}</textarea>
+        <div class="who">${by}</div></div>`}</td>
+    </tr>`;
+  }).join("");
+}
+
+/* ---------- saving ---------- */
+const timers={};
+$("#tbody").addEventListener("change",e=>{const box=e.target.closest(".fb");if(box&&e.target.dataset.f==="result")queueSave(box,0)});
+$("#tbody").addEventListener("input",e=>{const box=e.target.closest(".fb");if(box&&e.target.dataset.f==="note")queueSave(box,900)});
+function queueSave(box,delay){
+  const id=box.dataset.id; clearTimeout(timers[id]);
+  timers[id]=setTimeout(()=>saveOne(id,box),delay);
+}
+let writing={};
+async function saveOne(id,box){
+  const prev=feedback[id]||{};
+  const rec={result:box.querySelector('[data-f=result]').value, note:box.querySelector('[data-f=note]').value.trim(),
+    by:$("#me").value.trim()||prev.by||"", at:Date.now()};
+  const [view,month]=id.split("~"); const r=currentRows.find(x=>docId(state.view,state.m,x.c.k)===id);
+  if(r){rec.view=view;rec.month=month;rec.key=r.c.k;rec.name=r.c.n;rec.sales=r.c.s;rec.type=r.type}
+  feedback[id]={...prev,...rec};
+  box.classList.toggle("done",!!rec.result);
+  box.querySelector(".who").textContent=`${rec.by||"ไม่ระบุชื่อ"} · กำลังบันทึก…`;
+  if(saveMode==="db"){
+    while(writing[id]) await writing[id];
+    writing[id]=db.collection("feedback").doc(id).set(feedback[id]).then(()=>{toast("บันทึกแล้ว")},err=>{
+      if(err&&err.code==="invalid_argument"){toast("บัญชีนี้ไม่มีสิทธิ์แก้ไข ขอสิทธิ์ Contributor จากเจ้าของหน้า");}
+      else toast("บันทึกไม่สำเร็จ ลองอีกครั้ง");
+    }).finally(()=>{delete writing[id]});
+    await writing[id];
+  } else { saveDraft(); setDirty(true); toast("จดไว้แล้ว · อย่าลืมกดบันทึกไฟล์"); }
+  const w=box.querySelector(".who"); if(w) w.textContent=`${rec.by||"ไม่ระบุชื่อ"} · ${new Date(rec.at).toLocaleString("th-TH",{day:"numeric",month:"short",hour:"2-digit",minute:"2-digit"})}`;
+  updateProgressOnly();
+}
+function updateProgressOnly(){
+  const all=rowsFor().filter(r=>r.type!=="new"&&state.types.has(r.type)&&(!state.sales||r.c.s===state.sales||r.c.ss.includes(state.sales)));
+  const done=all.filter(r=>{const f=feedback[docId(state.view,state.m,r.c.k)];return f&&f.result}).length;
+  const p=$("#progress"); p.innerHTML=p.innerHTML.replace(/เช็คแล้ว <b>\d+<\/b>/,`เช็คแล้ว <b>${done}</b>`);
+}
+let tt; function toast(s){const t=$("#toast");t.textContent=s;t.classList.add("show");clearTimeout(tt);tt=setTimeout(()=>t.classList.remove("show"),1600)}
+function setSaveState(kind,txt){$("#saveState").innerHTML=`<span class="dot ${kind}"></span><span>${txt}</span>`}
+
+/* ---------- export ---------- */
+$("#exportBtn").onclick=async()=>{
+  const all=rowsFor().filter(r=>state.types.has(r.type));
+  const head=["เดือน","มุมมอง","รหัส","ลูกค้า","Sales","ประเภท",...DATA.months.map((_,i)=>"TEU "+MNAME[i]),"TEU ที่หาย","ผลการเช็ค","หมายเหตุ","ผู้เช็ค","เวลาบันทึก"];
+  const q=v=>`"${String(v??"").replace(/"/g,'""')}"`;
+  const lines=[head.map(q).join(",")].concat(all.map(r=>{const f=feedback[docId(state.view,state.m,r.c.k)]||{};
+    return [DATA.months[state.m],state.view==="cust"?"Shipper":"Org Shipper",r.c.k,r.c.n,r.c.s,TYPE[r.type],...r.c.t,r.impact.toFixed(1),RES_LABEL[f.result||""]&&f.result?RES_LABEL[f.result]:"",f.note||"",f.by||"",f.at?new Date(f.at).toLocaleString("th-TH"):""].map(q).join(",")}));
+  const csv="﻿"+lines.join("\r\n");
+  const filename=`KR_lost_customers_${DATA.months[state.m]}.csv`;
+  const dl = window.claude ? await claude.use("downloads").catch(()=>null) : null;
+  try{
+    if(dl) await dl.save({filename,data:csv});
+    else{const url=URL.createObjectURL(new Blob([csv],{type:"text/csv"}));const a=document.createElement("a");a.href=url;a.download=filename;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),4000);}
+  }catch(e){ if(e&&e.code!=="declined") toast("ดาวน์โหลดไม่สำเร็จ"); }
+};
+
+/* ---------- file save / merge ---------- */
+function mergeInto(items){
+  let n=0;
+  for(const [id,r] of Object.entries(items||{})){
+    if(!r||typeof r!=="object"||!/^(cust|org)~\d{4}-\d{2}~[a-z0-9]+$/.test(id)) continue;
+    const cur=feedback[id];
+    if(!cur||(+r.at||0)>(+cur.at||0)){feedback[id]={result:String(r.result||""),note:String(r.note||""),by:String(r.by||""),at:+r.at||0,
+      view:r.view,month:r.month,key:r.key,name:r.name,sales:r.sales,type:r.type};n++;}
+  }
+  return n;
+}
+function saveDraft(){try{localStorage.setItem(DRAFT_KEY,JSON.stringify(feedback))}catch(e){}}
+function setDirty(v){dirty=v;$("#dirty").hidden=!v}
+window.addEventListener("beforeunload",e=>{if(dirty&&saveMode!=="db"){e.preventDefault();e.returnValue="";}});
+
+function buildFileHtml(rev){
+  const json=JSON.stringify({rev,savedAt:Date.now(),savedBy:$("#me").value.trim(),items:feedback}).replace(/</g,"\\u003c");
+  const clone=document.documentElement.cloneNode(true);
+  clone.querySelector("#fbdata").textContent=json;
+  ["#tbody","#thead","#kpis","#chart","#monthline","#monthSeg"].forEach(s=>{const el=clone.querySelector(s); if(el) el.innerHTML="";});
+  clone.querySelector("#toast").className="toast";
+  clone.querySelector("#dirty").hidden=true;
+  clone.removeAttribute("data-theme");
+  return "<!doctype html>\n"+clone.outerHTML;
+}
+$("#saveFileBtn").onclick=async()=>{
+  const who=$("#me").value.trim();
+  if(!who){ $("#me").focus(); toast("ใส่ชื่อผู้เช็คก่อนบันทึกไฟล์"); return; }
+  const rev=Date.now().toString(36);
+  const html=buildFileHtml(rev);
+  const d=new Date(), stamp=`${d.getFullYear()}${String(d.getMonth()+1).padStart(2,"0")}${String(d.getDate()).padStart(2,"0")}`;
+  const filename=`KR_Lost_Customer_${who.replace(/[^\p{L}\p{N}_-]+/gu,"_")}_${stamp}.html`;
+  const dl = window.claude ? await claude.use("downloads").catch(()=>null) : null;
+  try{
+    if(dl){ await dl.save({filename,data:html}); }
+    else{
+      const url=URL.createObjectURL(new Blob([html],{type:"text/html"}));
+      const a=document.createElement("a"); a.href=url; a.download=filename; document.body.appendChild(a); a.click(); a.remove();
+      setTimeout(()=>URL.revokeObjectURL(url),4000);
+    }
+    try{localStorage.removeItem(DRAFT_KEY)}catch(e){}
+    setDirty(false); toast("บันทึกไฟล์แล้ว · ส่งไฟล์นี้กลับให้เจ้าของได้เลย");
+  }catch(e){ if(!(e&&e.code==="declined")) toast("บันทึกไฟล์ไม่สำเร็จ"); }
+};
+$("#importBtn").onclick=()=>$("#importInput").click();
+$("#importInput").onchange=async e=>{
+  const files=[...e.target.files]; e.target.value="";
+  let added=0, ok=0, bad=[];
+  for(const f of files){
+    try{
+      const txt=await f.text();
+      const m=txt.match(/<script type="application\/json" id="fbdata">([\s\S]*?)<\/script>/);
+      if(!m) throw 0;
+      const obj=JSON.parse(m[1]); const before=JSON.stringify(feedback);
+      const n=mergeInto(obj.items); added+=n; ok++;
+      if(saveMode==="db" && n){
+        for(const [id,r] of Object.entries(obj.items)){ if(feedback[id]===r||JSON.stringify(feedback[id])===JSON.stringify(r)) { try{await db.collection("feedback").doc(id).set(feedback[id])}catch(_){}} }
+      }
+    }catch(_){ bad.push(f.name); }
+  }
+  if(saveMode!=="db" && added){ saveDraft(); setDirty(true); }
+  renderTable();
+  toast(`รวม ${ok} ไฟล์ · อัปเดต ${added} คำตอบ`+(bad.length?` · อ่านไม่ได้: ${bad.join(", ")}`:""));
+};
+
+/* ---------- render ---------- */
+function render(){
+  document.querySelectorAll("#monthSeg button").forEach(b=>b.setAttribute("aria-pressed",+b.dataset.m===state.m));
+  renderChart(); const all=rowsFor(); renderKpis(all); renderHead(); renderTable();
+}
+
+/* ---------- boot ---------- */
+$("#asof").textContent=DATA.asof;
+buildMonthSeg(); buildSales();
+let EMB={rev:"",items:{}};
+try{const s=JSON.parse(document.getElementById("fbdata").textContent); if(s&&s.items) EMB=s;}catch(e){}
+feedback={...EMB.items};
+const DRAFT_KEY="kr-draft-"+(EMB.rev||"base");
+let dirty=false;
+try{const d=JSON.parse(localStorage.getItem(DRAFT_KEY)||"null"); if(d&&typeof d==="object"){ if(mergeInto(d)>0) setDirty(true);} }catch(e){}
+render();
+setSaveState("warn","คำตอบเก็บในไฟล์นี้ · กดบันทึกไฟล์เพื่อส่งกลับ");
+
+(async()=>{
+  const ns = window.claude ? await claude.use("db").catch(()=>null) : null;
+  if(!ns) return;
+  db=ns; saveMode="db"; feedback={};
+  setSaveState("ok","บันทึกอัตโนมัติ · ทุกคนที่เปิดลิงก์นี้เห็นข้อมูลเดียวกัน");
+  db.collection("feedback").onSnapshot(snap=>{
+    const next={...EMB.items}; snap.docs.forEach(d=>{next[d.id]=d.data()});
+    const focusId=document.activeElement&&document.activeElement.closest(".fb")?.dataset.id;
+    feedback={...next};
+    if(focusId){ updateProgressOnly(); return; }
+    renderTable();
+  },err=>{ setSaveState("warn","เชื่อมที่บันทึกกลางไม่ได้ ข้อมูลจะเก็บในเครื่องนี้"); saveMode="local"; });
+})();
+</script>
