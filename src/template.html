@@ -108,40 +108,40 @@ th.m.cur{color:var(--accent)}
   <header>
     <div>
       <h1>KR Lost Customer Tracker</h1>
-      <p class="sub">TH → Korea · ยอดจองแยกตามเดือนของ ETD เรือ · ข้อมูลอัปเดต <span class="mono" id="asof"></span></p>
+      <p class="sub">TH → Korea · Bookings by vessel ETD month · Data as of <span class="mono" id="asof"></span></p>
     </div>
-    <div class="save-state" id="saveState"><span class="dot"></span><span>กำลังเชื่อมต่อที่บันทึก…</span></div>
+    <div class="save-state" id="saveState"><span class="dot"></span><span>Connecting…</span></div>
   </header>
 
   <section class="howto" id="howto">
-    <div><b>สำหรับเซล</b> เลือกชื่อตัวเองในช่อง Sales → ใส่ "ชื่อผู้เช็ค" → เลือกผลการเช็คและพิมพ์รายละเอียด → กด <b>บันทึกไฟล์ (ส่งกลับ)</b> แล้วส่งไฟล์ที่ได้กลับทางอีเมล/LINE</div>
-    <div><b>สำหรับเจ้าของ</b> กด <b>รวมไฟล์จากเซล</b> แล้วเลือกไฟล์ที่ได้รับ (เลือกหลายไฟล์พร้อมกันได้) คำตอบทั้งหมดจะรวมเข้าตาราง จากนั้นกดบันทึกไฟล์เพื่อเก็บฉบับรวม</div>
-    <div id="howtoRemote" hidden><b>สำหรับเซล</b> เลือกชื่อตัวเองในช่อง Sales → ใส่ "ชื่อผู้เช็ค" → เลือกผลการเช็คและพิมพ์รายละเอียด → กด <b>ส่งข้อมูล</b> คำตอบจะส่งถึงเจ้าของทันที (ส่งซ้ำ/แก้ไขได้ ระบบจะเก็บคำตอบล่าสุด)</div>
-    <div class="dirty" id="dirty" hidden>มีคำตอบที่ยังไม่ได้บันทึกลงไฟล์ · กด "บันทึกไฟล์ (ส่งกลับ)" ก่อนปิด</div>
+    <div><b>For sales</b> Pick your name in the Sales filter → enter "Checked by" → choose a check result and add details → click <b>Save file (send back)</b> and return the saved file by email/LINE</div>
+    <div><b>For the owner</b> Click <b>Merge sales files</b> and pick the returned files (multiple allowed). All answers are merged into the table; then save the file to keep the merged copy</div>
+    <div id="howtoRemote" hidden><b>For sales</b> Pick your name in the Sales filter → enter "Checked by" → choose a check result and add details → click <b>Submit</b>. Answers reach the owner immediately (you can edit and resubmit; the latest answer is kept)</div>
+    <div class="dirty" id="dirty" hidden>You have answers not yet saved to file · click "Save file (send back)" before closing</div>
   </section>
 
-  <section class="panel controls" aria-label="ตัวกรอง">
-    <div class="ctl"><label>เดือนที่ดู</label><div class="seg" id="monthSeg"></div></div>
-    <div class="ctl"><label>นับลูกค้าแบบ</label><div class="seg" id="viewSeg">
-      <button type="button" data-v="cust" aria-pressed="true">ผู้จอง (Shipper)</button>
-      <button type="button" data-v="org" aria-pressed="false">เจ้าของสินค้า (Org Shipper)</button>
+  <section class="panel controls" aria-label="Filters">
+    <div class="ctl"><label>Month</label><div class="seg" id="monthSeg"></div></div>
+    <div class="ctl"><label>Count customers by</label><div class="seg" id="viewSeg">
+      <button type="button" data-v="cust" aria-pressed="true">Booking party (Shipper)</button>
+      <button type="button" data-v="org" aria-pressed="false">Cargo owner (Org Shipper)</button>
     </div></div>
-    <div class="ctl"><label for="salesSel">Sales</label><select id="salesSel"><option value="">ทุกคน</option></select></div>
-    <div class="ctl"><label for="fbSel">สถานะการเช็ค</label><select id="fbSel">
-      <option value="">ทั้งหมด</option><option value="todo">ยังไม่เช็ค</option><option value="done">เช็คแล้ว</option></select></div>
-    <div class="ctl" style="flex:1 1 200px"><label for="q">ค้นหา</label><input type="search" id="q" placeholder="ชื่อลูกค้า / รหัส / org shipper"></div>
+    <div class="ctl"><label for="salesSel">Sales</label><select id="salesSel"><option value="">All</option></select></div>
+    <div class="ctl"><label for="fbSel">Check status</label><select id="fbSel">
+      <option value="">All</option><option value="todo">Not checked</option><option value="done">Checked</option></select></div>
+    <div class="ctl" style="flex:1 1 200px"><label for="q">Search</label><input type="search" id="q" placeholder="Customer name / code / org shipper"></div>
   </section>
 
   <section class="strip">
     <div class="panel chart">
       <div style="display:flex;justify-content:space-between;align-items:baseline;gap:8px;flex-wrap:wrap">
-        <h2>TEU รายเดือน (ETD)</h2><span class="lbl">คลิกแท่งเพื่อเลือกเดือน</span>
+        <h2>Monthly TEU (ETD)</h2><span class="lbl">Click a bar to select a month</span>
       </div>
       <div id="chart"></div>
       <div class="monthline" id="monthline"></div>
     </div>
     <div class="panel" style="display:flex;flex-direction:column;gap:10px">
-      <h2 id="kpiTitle">สิ่งที่เปลี่ยนไปเดือนนี้</h2>
+      <h2 id="kpiTitle">What changed this month</h2>
       <div class="kpis" id="kpis"></div>
       <p class="note" id="kpiNote"></p>
     </div>
@@ -150,16 +150,16 @@ th.m.cur{color:var(--accent)}
   <section class="panel">
     <div class="tablebar">
       <div class="left">
-        <h2 id="listTitle">รายชื่อที่ต้องเช็ค</h2>
+        <h2 id="listTitle">Customers to check</h2>
         <span class="progress" id="progress"></span>
       </div>
       <div class="left">
-        <div class="namebox"><label class="lbl" for="me">ชื่อผู้เช็ค</label><input type="text" id="me" placeholder="ชื่อของคุณ" style="width:140px"></div>
-        <button class="btn primary" id="sendBtn" type="button" hidden>ส่งข้อมูล</button>
-        <button class="btn primary" id="saveFileBtn" type="button">บันทึกไฟล์ (ส่งกลับ)</button>
-        <button class="btn" id="importBtn" type="button">รวมไฟล์จากเซล</button>
+        <div class="namebox"><label class="lbl" for="me">Checked by</label><input type="text" id="me" placeholder="Your name" style="width:140px"></div>
+        <button class="btn primary" id="sendBtn" type="button" hidden>Submit</button>
+        <button class="btn primary" id="saveFileBtn" type="button">Save file (send back)</button>
+        <button class="btn" id="importBtn" type="button">Merge sales files</button>
         <input type="file" id="importInput" accept=".html,.htm" multiple hidden>
-        <button class="btn" id="exportBtn" type="button">ดาวน์โหลด CSV</button>
+        <button class="btn" id="exportBtn" type="button">Download CSV</button>
       </div>
     </div>
     <div class="tscroll"><table>
@@ -173,25 +173,25 @@ th.m.cur{color:var(--accent)}
 <script type="application/json" id="fbdata">{"rev":"","items":{}}</script>
 <script>
 const DATA = __DATA__;
-const MNAME = ["พ.ค.","มิ.ย.","ก.ค.","ส.ค.","ก.ย.","ต.ค."];
-const SHEET_URL = __SHEET_URL__;   // Google Apps Script web app (ว่าง = ใช้วิธีบันทึกไฟล์)
+const MNAME = DATA.monthNames;
+const SHEET_URL = __SHEET_URL__;   // Google Apps Script web app (empty = save-file workflow)
 const REMOTE = /^https:\/\/script\.google\.com\//.test(SHEET_URL);
 const RESULTS = [
-  ["", "— ยังไม่เช็ค —"],
-  ["back", "จะกลับมาจอง / มีงานเดือนหน้า"],
-  ["shift", "เลื่อนชิปเมนต์ / ไปอยู่เรือเดือนถัดไป"],
-  ["price", "ราคาสู้คู่แข่งไม่ได้"],
-  ["competitor", "ย้ายไปใช้สายเรืออื่น"],
-  ["space", "ปัญหาพื้นที่ / ตารางเรือ / อุปกรณ์"],
-  ["noorder", "ออเดอร์ลด / ไม่มีสินค้า"],
-  ["spot", "เป็นงาน spot ไม่ประจำ"],
-  ["closed", "เลิกส่งเส้นทางนี้ / ปิดกิจการ"],
-  ["other", "อื่นๆ (ดูหมายเหตุ)"]
+  ["", "— Not checked —"],
+  ["back", "Will book again / has cargo next month"],
+  ["shift", "Shipment postponed / moved to next month vessel"],
+  ["price", "Price not competitive"],
+  ["competitor", "Moved to another carrier"],
+  ["space", "Space / schedule / equipment issue"],
+  ["noorder", "Fewer orders / no cargo"],
+  ["spot", "Spot cargo, not regular"],
+  ["closed", "Stopped this route / closed business"],
+  ["other", "Other (see note)"]
 ];
 const RES_LABEL = Object.fromEntries(RESULTS);
-const TYPE = {lost:"หายไปเดือนนี้", drop:"ลดลง ≥50%", gone:"หายไปก่อนหน้า", new:"ลูกค้าใหม่"};
+const TYPE = {lost:"Lost this month", drop:"Dropped ≥50%", gone:"Lost earlier", new:"New customer"};
 
-let state = {m:5, view:"cust", sales:"", fb:"", q:"", types:new Set(["lost","drop"])};
+let state = {m:DATA.months.length-1, view:"cust", sales:"", fb:"", q:"", types:new Set(["lost","drop"])};
 let feedback = {};       // docId -> {result,note,by,at}
 let db = null, saveMode = "local";
 const $ = s => document.querySelector(s);
@@ -228,7 +228,7 @@ $("#viewSeg").onclick=e=>{const b=e.target.closest("button");if(!b)return;state.
   document.querySelectorAll("#viewSeg button").forEach(x=>x.setAttribute("aria-pressed",x===b));render()};
 function buildSales(){
   const names=new Set(); for(const v of ["cust","org"]) DATA[v].forEach(c=>names.add(c.s));
-  $("#salesSel").innerHTML='<option value="">ทุกคน</option>'+[...names].sort((a,b)=>a.localeCompare(b)).map(n=>`<option>${esc(n)}</option>`).join("");
+  $("#salesSel").innerHTML='<option value="">All</option>'+[...names].sort((a,b)=>a.localeCompare(b)).map(n=>`<option>${esc(n)}</option>`).join("");
 }
 $("#salesSel").onchange=e=>{state.sales=e.target.value;render()};
 $("#fbSel").onchange=e=>{state.fb=e.target.value;render()};
@@ -240,7 +240,7 @@ $("#me").onchange=e=>{try{localStorage.setItem("kr-me",e.target.value.trim())}ca
 function renderChart(){
   const W=560,H=190,pl=40,pr=8,pt=22,pb=26, n=6, max=Math.max(...DATA.total)*1.08;
   const bw=(W-pl-pr)/n, y=v=>pt+(H-pt-pb)*(1-v/max);
-  let s=`<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="TEU รายเดือน">`;
+  let s=`<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Monthly TEU">`;
   [500,1000].forEach(g=>{s+=`<line x1="${pl}" x2="${W-pr}" y1="${y(g)}" y2="${y(g)}" stroke="var(--line)" stroke-dasharray="3 3"/><text x="${pl-6}" y="${y(g)+4}" text-anchor="end">${g}</text>`});
   DATA.total.forEach((v,i)=>{
     const x=pl+i*bw+bw*0.18, w=bw*0.64, sel=i===state.m;
@@ -254,8 +254,8 @@ function renderChart(){
   const m=state.m, d=DATA.total[m]-DATA.total[m-1], pct=(d/DATA.total[m-1]*100).toFixed(1);
   const avg=DATA.total.slice(0,m).reduce((a,b)=>a+b,0)/m;
   $("#monthline").innerHTML=`<span>${MNAME[m]} <b>${DATA.total[m]}</b> TEU · <b>${DATA.totalBk[m]}</b> bookings</span>
-    <span>เทียบ ${MNAME[m-1]}: <b style="color:${d<0?'var(--lost)':'var(--new)'}">${d>0?'+':''}${d} (${d>0?'+':''}${pct}%)</b></span>
-    <span>เทียบเฉลี่ยก่อนหน้า: <b>${Math.round(avg)}</b> TEU</span>`;
+    <span>vs ${MNAME[m-1]}: <b style="color:${d<0?'var(--lost)':'var(--new)'}">${d>0?'+':''}${d} (${d>0?'+':''}${pct}%)</b></span>
+    <span>vs prior average: <b>${Math.round(avg)}</b> TEU</span>`;
 }
 
 /* ---------- KPIs ---------- */
@@ -264,26 +264,26 @@ function renderKpis(all){
   const sum=(a,f)=>a.reduce((s,r)=>s+f(r),0);
   const m=state.m;
   const cards=[
-    ["lost", g.lost.length, `เคยจอง ${sum(g.lost,r=>r.c.t[m-1])} TEU ใน${MNAME[m-1]}`],
-    ["drop", g.drop.length, `TEU หายไป ${sum(g.drop,r=>r.impact)} จากเดือนก่อน`],
-    ["gone", g.gone.length, `เฉลี่ยตอนที่ยังจอง ~${Math.round(sum(g.gone,r=>r.impact))} TEU/เดือน`],
-    ["new",  g.new.length, `เข้ามาใหม่ ${sum(g.new,r=>r.c.t[m])} TEU`]
+    ["lost", g.lost.length, `Booked ${sum(g.lost,r=>r.c.t[m-1])} TEU in ${MNAME[m-1]}`],
+    ["drop", g.drop.length, `${sum(g.drop,r=>r.impact)} TEU lost vs last month`],
+    ["gone", g.gone.length, `~${Math.round(sum(g.gone,r=>r.impact))} TEU/month when active`],
+    ["new",  g.new.length, `${sum(g.new,r=>r.c.t[m])} new TEU`]
   ];
-  $("#kpiTitle").textContent=`สิ่งที่เปลี่ยนไปใน${MNAME[m]} เทียบ ${MNAME[m-1]}`;
+  $("#kpiTitle").textContent=`What changed in ${MNAME[m]} vs ${MNAME[m-1]}`;
   $("#kpis").innerHTML=cards.map(([k,n,s])=>`<button type="button" class="kpi ${k}" data-k="${k}" aria-pressed="${state.types.has(k)}">
-     <span class="t">${TYPE[k]}</span><span class="big">${n} ราย</span><span class="small">${s}</span></button>`).join("");
+     <span class="t">${TYPE[k]}</span><span class="big">${n}</span><span class="small">${s}</span></button>`).join("");
   $("#kpis").onclick=e=>{const b=e.target.closest(".kpi");if(!b)return;const k=b.dataset.k;
     state.types.has(k)?state.types.delete(k):state.types.add(k); if(!state.types.size) state.types.add(k); render()};
-  let note=`กดการ์ดเพื่อเลือกกลุ่มที่จะแสดงในตาราง · "หายไปก่อนหน้า" = ไม่มียอดทั้ง${MNAME[m]}และ${MNAME[m-1]} แต่เคยจองในเดือนก่อนๆ`;
-  if(m===5) note+=` · ต.ค. ยังมี booking ของเรือปลายเดือนทยอยเข้ามา (ETD ล่าสุดในไฟล์ ${DATA.etdMax.slice(8)}/10) ลูกค้าบางรายอาจยังไม่ได้จอง`;
+  let note=`Click a card to choose which groups show in the table · "Lost earlier" = no bookings in ${MNAME[m]} or ${MNAME[m-1]} but booked in earlier months`;
+  if(m===DATA.months.length-1) note+=` · ${MNAME[m]} bookings for late-month vessels are still coming in (latest ETD in file ${DATA.etdMax.slice(8)}/${DATA.etdMax.slice(5,7)}), so some customers may not have booked yet`;
   $("#kpiNote").textContent=note;
 }
 
 /* ---------- table ---------- */
 function renderHead(){
-  $("#thead").innerHTML=`<th>ลูกค้า</th><th>Sales</th>`+
+  $("#thead").innerHTML=`<th>Customer</th><th>Sales</th>`+
     DATA.months.map((_,i)=>`<th class="m ${i===state.m?'cur':''}">${MNAME[i]}</th>`).join("")+
-    `<th>ประเภท</th><th style="text-align:right">TEU ที่หาย</th><th>ETD ล่าสุด</th><th>ผลการเช็คจาก Sales</th>`;
+    `<th>Type</th><th style="text-align:right">TEU lost</th><th>Last ETD</th><th>Sales check result</th>`;
 }
 function heat(v,max){ if(!v) return ""; const a=Math.min(.55,.08+.47*v/max); return `background:rgba(var(--heat),${a.toFixed(2)})`; }
 
@@ -304,17 +304,17 @@ function renderTable(){
   const all=rowsFor(); const rows=filtered(all); currentRows=rows;
   const fbRows=all.filter(r=>r.type!=="new"&&state.types.has(r.type)&&(!state.sales||r.c.s===state.sales||r.c.ss.includes(state.sales)));
   const done=fbRows.filter(r=>{const f=feedback[docId(state.view,state.m,r.c.k)];return f&&f.result}).length;
-  $("#progress").innerHTML=`แสดง <b>${rows.length}</b> ราย · เช็คแล้ว <b>${done}</b>/<b>${fbRows.length}</b>`;
-  $("#listTitle").textContent=`รายชื่อที่ต้องเช็ค · ${MNAME[state.m]}`;
-  if(!rows.length){$("#tbody").innerHTML=`<tr><td colspan="${DATA.months.length+6}" class="empty">ไม่มีรายการตามตัวกรองนี้</td></tr>`;return;}
+  $("#progress").innerHTML=`Showing <b>${rows.length}</b> · Checked <b>${done}</b>/<b>${fbRows.length}</b>`;
+  $("#listTitle").textContent=`Customers to check · ${MNAME[state.m]}`;
+  if(!rows.length){$("#tbody").innerHTML=`<tr><td colspan="${DATA.months.length+6}" class="empty">No customers match these filters</td></tr>`;return;}
   $("#tbody").innerHTML=rows.map(r=>{
     const c=r.c, id=docId(state.view,state.m,c.k), f=feedback[id]||{}, max=Math.max(...c.t,1);
-    const other = state.view==="cust" ? "Org: " : "จองผ่าน: ";
+    const other = state.view==="cust" ? "Org: " : "Booked via: ";
     const orgs=c.o.slice(0,3).map(o=>esc(o[0])+` <span class="mono">(${o[1]})</span>`).join(" · ");
     const lastIdx=[...c.t].map((v,i)=>v>0?i:-1).filter(i=>i>=0&&i<=state.m).pop();
     const lastEtd= lastIdx!=null && c.lastByMonth[lastIdx] ? `${c.lastByMonth[lastIdx]}` : "";
     const impact = r.type==="new" ? `+${fmt(r.impact)}` : (r.type==="gone"?`~${r.impact.toFixed(1)}`:`−${fmt(r.impact)}`);
-    const by = f.by||f.at ? `${f.by?esc(f.by):"ไม่ระบุชื่อ"}${f.at?" · "+new Date(f.at).toLocaleString("th-TH",{day:"numeric",month:"short",hour:"2-digit",minute:"2-digit"}):""}` : "";
+    const by = f.by||f.at ? `${f.by?esc(f.by):"Unnamed"}${f.at?" · "+new Date(f.at).toLocaleString("en-GB",{day:"numeric",month:"short",hour:"2-digit",minute:"2-digit"}):""}` : "";
     return `<tr>
       <td style="min-width:240px"><div class="cname">${esc(c.n)}</div>
         <div class="cmeta"><span class="mono">${state.view==="cust"?esc(c.k):""}</span> ${c.pod.join(", ")} · ${esc(c.com[0]||"")}</div>
@@ -325,8 +325,8 @@ function renderTable(){
       <td style="text-align:right" class="impact">${impact}</td>
       <td class="mono" style="font-size:12.5px">${lastEtd}</td>
       <td>${r.type==="new"?'<span class="cmeta">—</span>':`<div class="fb ${f.result?'done':''}" data-id="${id}">
-        <select data-f="result" aria-label="ผลการเช็ค">${RESULTS.map(([v,l])=>`<option value="${v}" ${v===(f.result||"")?"selected":""}>${l}</option>`).join("")}</select>
-        <textarea data-f="note" rows="1" placeholder="รายละเอียด เช่น คู่แข่ง/ราคา/เดือนที่จะกลับมา">${esc(f.note||"")}</textarea>
+        <select data-f="result" aria-label="Check result">${RESULTS.map(([v,l])=>`<option value="${v}" ${v===(f.result||"")?"selected":""}>${l}</option>`).join("")}</select>
+        <textarea data-f="note" rows="1" placeholder="Details, e.g. competitor / price / month they will return">${esc(f.note||"")}</textarea>
         <div class="who">${by}</div></div>`}</td>
     </tr>`;
   }).join("");
@@ -349,23 +349,23 @@ async function saveOne(id,box){
   if(r){rec.view=view;rec.month=month;rec.key=r.c.k;rec.name=r.c.n;rec.sales=r.c.s;rec.type=r.type}
   feedback[id]={...prev,...rec};
   box.classList.toggle("done",!!rec.result);
-  box.querySelector(".who").textContent=`${rec.by||"ไม่ระบุชื่อ"} · กำลังบันทึก…`;
+  box.querySelector(".who").textContent=`${rec.by||"Unnamed"} · saving…`;
   if(saveMode==="db"){
     while(writing[id]) await writing[id];
-    writing[id]=db.collection("feedback").doc(id).set(feedback[id]).then(()=>{toast("บันทึกแล้ว")},err=>{
-      if(err&&err.code==="invalid_argument"){toast("บัญชีนี้ไม่มีสิทธิ์แก้ไข ขอสิทธิ์ Contributor จากเจ้าของหน้า");}
-      else toast("บันทึกไม่สำเร็จ ลองอีกครั้ง");
+    writing[id]=db.collection("feedback").doc(id).set(feedback[id]).then(()=>{toast("Saved")},err=>{
+      if(err&&err.code==="invalid_argument"){toast("This account cannot edit. Ask the page owner for Contributor access");}
+      else toast("Save failed, please try again");
     }).finally(()=>{delete writing[id]});
     await writing[id];
   } else if(REMOTE){ saveDraft(); pending.add(id); savePending(); updateSendBtn(); }
-  else { saveDraft(); setDirty(true); toast("จดไว้แล้ว · อย่าลืมกดบันทึกไฟล์"); }
-  const w=box.querySelector(".who"); if(w) w.textContent=`${rec.by||"ไม่ระบุชื่อ"} · ${new Date(rec.at).toLocaleString("th-TH",{day:"numeric",month:"short",hour:"2-digit",minute:"2-digit"})}`;
+  else { saveDraft(); setDirty(true); toast("Noted · remember to save the file"); }
+  const w=box.querySelector(".who"); if(w) w.textContent=`${rec.by||"Unnamed"} · ${new Date(rec.at).toLocaleString("en-GB",{day:"numeric",month:"short",hour:"2-digit",minute:"2-digit"})}`;
   updateProgressOnly();
 }
 function updateProgressOnly(){
   const all=rowsFor().filter(r=>r.type!=="new"&&state.types.has(r.type)&&(!state.sales||r.c.s===state.sales||r.c.ss.includes(state.sales)));
   const done=all.filter(r=>{const f=feedback[docId(state.view,state.m,r.c.k)];return f&&f.result}).length;
-  const p=$("#progress"); p.innerHTML=p.innerHTML.replace(/เช็คแล้ว <b>\d+<\/b>/,`เช็คแล้ว <b>${done}</b>`);
+  const p=$("#progress"); p.innerHTML=p.innerHTML.replace(/Checked <b>\d+<\/b>/,`Checked <b>${done}</b>`);
 }
 let tt; function toast(s){const t=$("#toast");t.textContent=s;t.classList.add("show");clearTimeout(tt);tt=setTimeout(()=>t.classList.remove("show"),1600)}
 function setSaveState(kind,txt){$("#saveState").innerHTML=`<span class="dot ${kind}"></span><span>${txt}</span>`}
@@ -373,17 +373,17 @@ function setSaveState(kind,txt){$("#saveState").innerHTML=`<span class="dot ${ki
 /* ---------- export ---------- */
 $("#exportBtn").onclick=async()=>{
   const all=rowsFor().filter(r=>state.types.has(r.type));
-  const head=["เดือน","มุมมอง","รหัส","ลูกค้า","Sales","ประเภท",...DATA.months.map((_,i)=>"TEU "+MNAME[i]),"TEU ที่หาย","ผลการเช็ค","หมายเหตุ","ผู้เช็ค","เวลาบันทึก"];
+  const head=["Month","View","Code","Customer","Sales","Type",...DATA.months.map((_,i)=>"TEU "+MNAME[i]),"TEU lost","Check result","Note","Checked by","Saved at"];
   const q=v=>`"${String(v??"").replace(/"/g,'""')}"`;
   const lines=[head.map(q).join(",")].concat(all.map(r=>{const f=feedback[docId(state.view,state.m,r.c.k)]||{};
-    return [DATA.months[state.m],state.view==="cust"?"Shipper":"Org Shipper",r.c.k,r.c.n,r.c.s,TYPE[r.type],...r.c.t,r.impact.toFixed(1),RES_LABEL[f.result||""]&&f.result?RES_LABEL[f.result]:"",f.note||"",f.by||"",f.at?new Date(f.at).toLocaleString("th-TH"):""].map(q).join(",")}));
+    return [DATA.months[state.m],state.view==="cust"?"Shipper":"Org Shipper",r.c.k,r.c.n,r.c.s,TYPE[r.type],...r.c.t,r.impact.toFixed(1),RES_LABEL[f.result||""]&&f.result?RES_LABEL[f.result]:"",f.note||"",f.by||"",f.at?new Date(f.at).toLocaleString("en-GB"):""].map(q).join(",")}));
   const csv="﻿"+lines.join("\r\n");
   const filename=`KR_lost_customers_${DATA.months[state.m]}.csv`;
   const dl = window.claude ? await claude.use("downloads").catch(()=>null) : null;
   try{
     if(dl) await dl.save({filename,data:csv});
     else{const url=URL.createObjectURL(new Blob([csv],{type:"text/csv"}));const a=document.createElement("a");a.href=url;a.download=filename;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),4000);}
-  }catch(e){ if(e&&e.code!=="declined") toast("ดาวน์โหลดไม่สำเร็จ"); }
+  }catch(e){ if(e&&e.code!=="declined") toast("Download failed"); }
 };
 
 /* ---------- file save / merge ---------- */
@@ -408,15 +408,15 @@ try{pending=new Set(JSON.parse(localStorage.getItem(PENDING_KEY)||"[]"))}catch(e
 function savePending(){try{localStorage.setItem(PENDING_KEY,JSON.stringify([...pending]))}catch(e){}}
 function updateSendBtn(){
   const b=$("#sendBtn"); if(!REMOTE) return;
-  b.textContent=sending?"กำลังส่ง…":(pending.size?`ส่งข้อมูล (${pending.size})`:"ส่งข้อมูล");
+  b.textContent=sending?"Submitting…":(pending.size?`Submit (${pending.size})`:"Submit");
   b.disabled=sending;
-  if(pending.size) setSaveState("warn",`มี ${pending.size} คำตอบที่ยังไม่ได้ส่ง · กด "ส่งข้อมูล"`);
+  if(pending.size) setSaveState("warn",`${pending.size} answer(s) not submitted yet · click "Submit"`);
 }
 async function sendPending(){
   if(sending) return;
   const who=$("#me").value.trim();
-  if(!who){ $("#me").focus(); toast("ใส่ชื่อผู้เช็คก่อนส่งข้อมูล"); return; }
-  if(!pending.size){ toast("ไม่มีคำตอบใหม่ที่ต้องส่ง"); return; }
+  if(!who){ $("#me").focus(); toast("Enter your name in Checked by before submitting"); return; }
+  if(!pending.size){ toast("No new answers to submit"); return; }
   const ids=[...pending], items={};
   ids.forEach(id=>{ if(feedback[id]){ if(!feedback[id].by) feedback[id].by=who; items[id]=feedback[id]; } });
   sending=true; updateSendBtn();
@@ -424,11 +424,11 @@ async function sendPending(){
     const r=await fetch(SHEET_URL,{method:"POST",headers:{"Content-Type":"text/plain;charset=utf-8"},body:JSON.stringify({items})});
     const j=await r.json(); if(!j.ok) throw new Error(j.error||"failed");
     ids.forEach(id=>{ if(feedback[id]===items[id]) pending.delete(id); });
-    savePending(); setSaveState("ok","ส่งข้อมูลแล้ว · เจ้าของเห็นคำตอบในชีตทันที");
-    toast(`ส่งข้อมูลแล้ว ${Object.keys(items).length} รายการ`);
+    savePending(); setSaveState("ok","Submitted · the owner can see your answers now");
+    toast(`Submitted ${Object.keys(items).length} answer(s)`);
   }catch(e){
-    setSaveState("warn","ส่งไม่สำเร็จ · ตรวจอินเทอร์เน็ตแล้วกดส่งข้อมูลอีกครั้ง");
-    toast("ส่งไม่สำเร็จ ลองอีกครั้ง");
+    setSaveState("warn","Submit failed · check your connection and click Submit again");
+    toast("Submit failed, please try again");
   }finally{ sending=false; updateSendBtn(); }
 }
 $("#sendBtn").onclick=sendPending;
@@ -445,7 +445,7 @@ function buildFileHtml(rev){
 }
 $("#saveFileBtn").onclick=async()=>{
   const who=$("#me").value.trim();
-  if(!who){ $("#me").focus(); toast("ใส่ชื่อผู้เช็คก่อนบันทึกไฟล์"); return; }
+  if(!who){ $("#me").focus(); toast("Enter your name in Checked by before saving"); return; }
   const rev=Date.now().toString(36);
   const html=buildFileHtml(rev);
   const d=new Date(), stamp=`${d.getFullYear()}${String(d.getMonth()+1).padStart(2,"0")}${String(d.getDate()).padStart(2,"0")}`;
@@ -459,8 +459,8 @@ $("#saveFileBtn").onclick=async()=>{
       setTimeout(()=>URL.revokeObjectURL(url),4000);
     }
     try{localStorage.removeItem(DRAFT_KEY)}catch(e){}
-    setDirty(false); toast("บันทึกไฟล์แล้ว · ส่งไฟล์นี้กลับให้เจ้าของได้เลย");
-  }catch(e){ if(!(e&&e.code==="declined")) toast("บันทึกไฟล์ไม่สำเร็จ"); }
+    setDirty(false); toast("File saved · send it back to the owner");
+  }catch(e){ if(!(e&&e.code==="declined")) toast("Could not save the file"); }
 };
 $("#importBtn").onclick=()=>$("#importInput").click();
 $("#importInput").onchange=async e=>{
@@ -480,7 +480,7 @@ $("#importInput").onchange=async e=>{
   }
   if(saveMode!=="db" && added){ saveDraft(); setDirty(true); }
   renderTable();
-  toast(`รวม ${ok} ไฟล์ · อัปเดต ${added} คำตอบ`+(bad.length?` · อ่านไม่ได้: ${bad.join(", ")}`:""));
+  toast(`Merged ${ok} file(s) · updated ${added} answer(s)`+(bad.length?` · unreadable: ${bad.join(", ")}`:""));
 };
 
 /* ---------- render ---------- */
@@ -499,28 +499,28 @@ const DRAFT_KEY="kr-draft-"+(EMB.rev||"base");
 let dirty=false;
 try{const d=JSON.parse(localStorage.getItem(DRAFT_KEY)||"null"); if(d&&typeof d==="object"){ if(mergeInto(d)>0) setDirty(true);} }catch(e){}
 render();
-setSaveState("warn","คำตอบเก็บในไฟล์นี้ · กดบันทึกไฟล์เพื่อส่งกลับ");
+setSaveState("warn","Answers are stored in this file · click Save file to send back");
 if(REMOTE){
   $("#sendBtn").hidden=false; $("#saveFileBtn").hidden=true; $("#importBtn").hidden=true;
   $("#howtoRemote").hidden=false; $("#howto").firstElementChild.hidden=true; $("#howto").children[1].hidden=true;
-  setSaveState("warn","กำลังโหลดคำตอบล่าสุด…");
+  setSaveState("warn","Loading latest answers…");
   fetch(SHEET_URL).then(r=>r.json()).then(j=>{
     if(j&&j.items){ mergeInto(j.items); renderTable(); }
-    setSaveState("ok","เชื่อมต่อแล้ว · กด \"ส่งข้อมูล\" แล้วคำตอบจะถึงเจ้าของทันที"); updateSendBtn();
-  }).catch(()=>{ setSaveState("warn","โหลดคำตอบเดิมไม่ได้ · ยังกรอกและกดส่งข้อมูลได้"); updateSendBtn(); });
+    setSaveState("ok","Connected · click Submit and your answers reach the owner immediately"); updateSendBtn();
+  }).catch(()=>{ setSaveState("warn","Could not load previous answers · you can still fill in and submit"); updateSendBtn(); });
 }
 
 (async()=>{
   const ns = window.claude ? await claude.use("db").catch(()=>null) : null;
   if(!ns) return;
   db=ns; saveMode="db"; feedback={};
-  setSaveState("ok","บันทึกอัตโนมัติ · ทุกคนที่เปิดลิงก์นี้เห็นข้อมูลเดียวกัน");
+  setSaveState("ok","Auto-saved · everyone with this link sees the same data");
   db.collection("feedback").onSnapshot(snap=>{
     const next={...EMB.items}; snap.docs.forEach(d=>{next[d.id]=d.data()});
     const focusId=document.activeElement&&document.activeElement.closest(".fb")?.dataset.id;
     feedback={...next};
     if(focusId){ updateProgressOnly(); return; }
     renderTable();
-  },err=>{ setSaveState("warn","เชื่อมที่บันทึกกลางไม่ได้ ข้อมูลจะเก็บในเครื่องนี้"); saveMode="local"; });
+  },err=>{ setSaveState("warn","Could not reach shared storage · data stays on this device"); saveMode="local"; });
 })();
 </script>

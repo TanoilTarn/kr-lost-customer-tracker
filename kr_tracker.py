@@ -29,8 +29,8 @@ import pandas as pd
 ROOT = Path(__file__).resolve().parent
 TEMPLATE = ROOT / "src" / "template.html"
 CONFIG = ROOT / "config.json"
-MONTH_TH = {1: "ม.ค.", 2: "ก.พ.", 3: "มี.ค.", 4: "เม.ย.", 5: "พ.ค.", 6: "มิ.ย.",
-            7: "ก.ค.", 8: "ส.ค.", 9: "ก.ย.", 10: "ต.ค.", 11: "พ.ย.", 12: "ธ.ค."}
+MONTH_EN = {1: "Jan", 2: "Feb", 3: "Mar", 4: "Apr", 5: "May", 6: "Jun",
+            7: "Jul", 8: "Aug", 9: "Sep", 10: "Oct", 11: "Nov", 12: "Dec"}
 RESULT_TH = {
     "back": "จะกลับมาจอง / มีงานเดือนหน้า",
     "shift": "เลื่อนชิปเมนต์ / ไปอยู่เรือเดือนถัดไป",
@@ -91,7 +91,7 @@ def build_data(d: pd.DataFrame) -> dict:
     asof = d["Update Date"].max() if "Update Date" in d.columns else d.ETD.max()
     return dict(
         months=[str(p) for p in periods],
-        monthNames=[MONTH_TH[p.month] for p in periods],
+        monthNames=[MONTH_EN[p.month] for p in periods],
         asof=str(asof)[:10], etdMax=d.ETD.max().strftime("%Y-%m-%d"),
         total=[float(d[d.ym == p].TEU.sum()) for p in periods],
         totalBk=[int((d.ym == p).sum()) for p in periods],
@@ -110,14 +110,8 @@ def render_html(data: dict, template: Path = TEMPLATE, sheet_url: str = "") -> s
     t = template.read_text(encoding="utf-8")
     t = t.replace("__SHEET_URL__", json.dumps(sheet_url), 1)
     payload = json.dumps(data, ensure_ascii=False, separators=(",", ":")).replace("</", "<\\/")
-    # month labels follow the data instead of the fixed May–Oct list
-    t = re.sub(r"const MNAME = \[[^\]]*\];", "const MNAME = DATA.monthNames;", t, count=1)
-    t = t.replace("let state = {m:5,", "let state = {m:DATA.months.length-1,", 1)
-    t = t.replace("if(m===5) note+=", "if(m===DATA.months.length-1) note+=", 1)
-    t = t.replace("(ETD ล่าสุดในไฟล์ ${DATA.etdMax.slice(8)}/10)",
-                  "(ETD ล่าสุดในไฟล์ ${DATA.etdMax.slice(8)}/${DATA.etdMax.slice(5,7)})", 1)
     body = t.replace("__DATA__", payload)
-    return ('<!doctype html>\n<html lang="th"><head><meta charset="utf-8">'
+    return ('<!doctype html>\n<html lang="en"><head><meta charset="utf-8">'
             '<meta name="viewport" content="width=device-width,initial-scale=1"></head><body>\n'
             + body + "\n</body></html>")
 
