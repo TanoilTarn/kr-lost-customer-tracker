@@ -2,12 +2,13 @@
  * KR Lost Customer Tracker — ตัวรับคำตอบจากเซล (Google Apps Script)
  *
  * ติดตั้ง
- *  1. สร้าง Google Sheet ใหม่ → เมนู Extensions → Apps Script
- *  2. ลบโค้ดเดิม วางไฟล์นี้ทั้งไฟล์ → Save
- *  3. Deploy → New deployment → Select type: Web app
+ *  1. เปิดโปรเจกต์ Apps Script (หรือ Google Sheet → Extensions → Apps Script)
+ *  2. ลบโค้ดเดิมทั้งหมด วางไฟล์นี้ทั้งไฟล์ → Save
+ *  3. เลือกฟังก์ชัน setup → Run → อนุญาตสิทธิ์ (Execution log จะแสดงลิงก์ Google Sheet ที่เก็บคำตอบ)
+ *  4. Deploy → New deployment → Select type: Web app
  *       Execute as: Me   ·   Who has access: Anyone
- *  4. กด Deploy → อนุญาตสิทธิ์ → คัดลอก Web app URL (ลงท้ายด้วย /exec)
- *  5. รัน: python kr_tracker.py build "KR May to Oct.xls" --sheet-url <URL>
+ *  5. กด Deploy → คัดลอก Web app URL (ลงท้ายด้วย /exec) เปิดในเบราว์เซอร์ต้องเห็น {"ok":true,...}
+ *  6. รัน: python kr_tracker.py build "KR May to Oct.xls" --sheet-url <URL>
  *
  * ชีต "Feedback" = คำตอบล่าสุดของลูกค้าแต่ละราย · ชีต "Log" = ประวัติทุกครั้งที่กดส่ง
  */
